@@ -1,0 +1,16 @@
+{
+   "name": "rf-3d-view",
+   "description": " 3d View library for Rapidfacture apps: BabylonJS wrap and usefull 3d functions",
+   "author": {
+      "name": "Bernhard Roemer"
+   },
+   "version": "0.0.1",
+   "maintainers": [
+      {
+         "name": "felix_furtmayr",
+         "email": "ff@rapidfacture.com"
+      }
+   ],
+   "devDependencies": {},
+   "scripts": {}
+}

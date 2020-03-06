@@ -1,0 +1,13 @@
+job:
+  script:
+     - npm i
+     - npm test
+
+
+# global cache
+# caching of node modules (after the build) enourmus speeds up the npm install
+# more info: https://docs.gitlab.com/ee/ci/caching/
+cache:
+  key: "rf-3d-view" # name of the global storage folder
+  paths: # project paths to store
+    - node_modules/
