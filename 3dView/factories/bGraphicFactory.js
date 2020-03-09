@@ -449,7 +449,7 @@ app.factory('bGraphicFactory', [function () {
          var transformation = _transformationMatrixToAxisAngle(group.transformation);
          CoT.rotate(transformation.vector, transformation.angle);
 
-         _showAxis(group.id, CoT, BABYLON.Vector3.Zero(), transformation, 'machine', 20, scene);
+         _showAxis(group.id, CoT, BABYLON.Vector3.Zero(), transformation, 'machine', {size: 20}, scene);
 
          for (var k in group.origin) {
             var item = group.origin[k];
@@ -457,7 +457,7 @@ app.factory('bGraphicFactory', [function () {
             var originOffset = new BABYLON.Vector3.FromArray(item.offset);
             var originTranslation = _transformationMatrixToAxisAngle(item.transformation);
 
-            _showAxis(group.id, CoT, originOffset, originTranslation, k, 20, scene);
+            _showAxis(group.id, CoT, originOffset, originTranslation, k, {size: 20}, scene);
          }
 
          groups['G' + group.id] = {node: CoT, meshes: {}};
@@ -841,7 +841,7 @@ app.factory('bGraphicFactory', [function () {
    }
 
    // show axis
-   function _showAxis (groupId, node, translation, rotation, name, size, scene) {
+   function _showAxis (groupId, node, translation, rotation, name, options, scene) {
       // rotation not jet in use
       var makeTextPlane = function (text, color) {
          var dynamicTexture = new BABYLON.DynamicTexture('DynamicTexture', 50, scene, true);
@@ -856,6 +856,8 @@ app.factory('bGraphicFactory', [function () {
 
          return plane;
       };
+
+      var size = options.size || 5;
 
       var axisX = BABYLON.Mesh.CreateLines(
          groupId + '_' + name + '_axisX',
