@@ -69,7 +69,9 @@ app.factory('bGraphicFactory', [function () {
       offsetPaths: _offsetPaths,
       offsetShape: _offsetShape,
       paintView: _paintView,
-      sliceView: _sliceView
+      sliceView: _sliceView,
+      showAxis: _showAxis,
+      showGrid: _showGrid
    };
 
 
@@ -878,7 +880,7 @@ app.factory('bGraphicFactory', [function () {
       xChar.translate(translation, 1, BABYLON.Space.LOCAL);
 
       var axisY = BABYLON.Mesh.CreateLines(
-         groupId + '_' + name + 'axisY',
+         groupId + '_' + name + '_axisY',
          [
             new BABYLON.Vector3.Zero(),
             new BABYLON.Vector3(0, size, 0),
@@ -900,7 +902,7 @@ app.factory('bGraphicFactory', [function () {
       yChar.translate(translation, 1, BABYLON.Space.LOCAL);
 
       var axisZ = BABYLON.Mesh.CreateLines(
-         'axisZ',
+         groupId + '_' + name + '_axisZ',
          [
             new BABYLON.Vector3.Zero(),
             new BABYLON.Vector3(0, 0, size),
@@ -920,6 +922,31 @@ app.factory('bGraphicFactory', [function () {
       zChar.renderingGroupId = 3;
       zChar.parent = node;
       zChar.translate(translation, 1, BABYLON.Space.LOCAL);
+   }
+
+   // show grid
+   function _showGrid (groupId, node, translation, rotation, plane, name, options, scene) {
+      var gridMesh = BABYLON.Mesh.CreateGround(name, 1.0, 0.0, 1, scene);
+      gridMesh.translate(translation, 1, BABYLON.Space.LOCAL);
+      gridMesh.parent = node;
+      gridMesh.scaling.x = options.sizeAxis1 || 100;
+      gridMesh.scaling.z = options.sizeAxis2 || 100;
+      gridMesh.isPickable = false;
+
+      if (plane === 'xy') gridMesh.rotate(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
+      if (plane === 'yz') gridMesh.rotate(new BABYLON.Vector3(0, 0, 1), Math.PI / 2);
+
+      var gridMaterial = new BABYLON.GridMaterial(name + 'Material', scene);
+      gridMaterial.majorUnitFrequency = options.majorUnitFrequency || 10;
+      gridMaterial.minorUnitVisibility = options.minorUnitVisibility || 0.3;
+      gridMaterial.gridRatio = options.gridRation || 0.01;
+      gridMaterial.backFaceCulling = options.backFaceCulling || false;
+      gridMaterial.mainColor = options.mainColor || new BABYLON.Color3(1, 1, 1);
+      gridMaterial.lineColor = options.lineColor || new BABYLON.Color3(1.0, 1.0, 1.0);
+      gridMaterial.opacity = options.opacity || 0.8;
+      gridMaterial.zOffset = options.zOffset || 1.0;
+
+      gridMesh.material = gridMaterial;
    }
 
    return Services;
