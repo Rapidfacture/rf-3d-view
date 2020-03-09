@@ -940,7 +940,7 @@ app.factory('bGraphicFactory', [function () {
       gridMesh.parent = node;
       gridMesh.scaling.x = options.sizeAxis1 || 100;
       gridMesh.scaling.z = options.sizeAxis2 || 100;
-      gridMesh.isPickable = false;
+      gridMesh.isPickable = options.pickable || false;
 
       if (plane === 'xy') gridMesh.rotate(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
       if (plane === 'yz') gridMesh.rotate(new BABYLON.Vector3(0, 0, 1), Math.PI / 2);
@@ -956,6 +956,8 @@ app.factory('bGraphicFactory', [function () {
       gridMaterial.zOffset = options.zOffset || 1.0;
 
       gridMesh.material = gridMaterial;
+
+      return gridMesh;
    }
 
    return Services;
