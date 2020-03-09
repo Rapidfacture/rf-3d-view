@@ -858,72 +858,79 @@ app.factory('bGraphicFactory', [function () {
       };
 
       var size = options.size || 5;
+      var axis = options.axis || 'xyz';
 
-      var axisX = BABYLON.Mesh.CreateLines(
-         groupId + '_' + name + '_axisX',
-         [
-            new BABYLON.Vector3.Zero(),
-            new BABYLON.Vector3(size, 0, 0),
-            new BABYLON.Vector3(size * 0.95, 0.05 * size, 0),
-            new BABYLON.Vector3(size, 0, 0),
-            new BABYLON.Vector3(size * 0.95, -0.05 * size, 0)
-         ],
-         scene
-      );
-      axisX.color = new BABYLON.Color3(1, 0, 0);
-      axisX.renderingGroupId = 3;
-      axisX.parent = node;
-      axisX.translate(translation, 1, BABYLON.Space.LOCAL);
+      if (axis.includes('x')) {
+         var axisX = BABYLON.Mesh.CreateLines(
+            groupId + '_' + name + '_axisX',
+            [
+               new BABYLON.Vector3.Zero(),
+               new BABYLON.Vector3(size, 0, 0),
+               new BABYLON.Vector3(size * 0.95, 0.05 * size, 0),
+               new BABYLON.Vector3(size, 0, 0),
+               new BABYLON.Vector3(size * 0.95, -0.05 * size, 0)
+            ],
+            scene
+         );
+         axisX.color = new BABYLON.Color3(1, 0, 0);
+         axisX.renderingGroupId = 3;
+         axisX.parent = node;
+         axisX.translate(translation, 1, BABYLON.Space.LOCAL);
 
-      var xChar = makeTextPlane('X', 'red');
-      xChar.position = new BABYLON.Vector3(0.9 * size, -0.05 * size, 0);
-      xChar.renderingGroupId = 3;
-      xChar.parent = node;
-      xChar.translate(translation, 1, BABYLON.Space.LOCAL);
+         var xChar = makeTextPlane('X', 'red');
+         xChar.position = new BABYLON.Vector3(0.9 * size, -0.05 * size, 0);
+         xChar.renderingGroupId = 3;
+         xChar.parent = node;
+         xChar.translate(translation, 1, BABYLON.Space.LOCAL);
+      }
 
-      var axisY = BABYLON.Mesh.CreateLines(
-         groupId + '_' + name + '_axisY',
-         [
-            new BABYLON.Vector3.Zero(),
-            new BABYLON.Vector3(0, size, 0),
-            new BABYLON.Vector3(-0.05 * size, size * 0.95, 0),
-            new BABYLON.Vector3(0, size, 0),
-            new BABYLON.Vector3(0.05 * size, size * 0.95, 0)
-         ],
-         scene
-      );
-      axisY.color = new BABYLON.Color3(0, 1, 0);
-      axisY.renderingGroupId = 3;
-      axisY.parent = node;
-      axisY.translate(translation, 1, BABYLON.Space.LOCAL);
+      if (axis.includes('y')) {
+         var axisY = BABYLON.Mesh.CreateLines(
+            groupId + '_' + name + '_axisY',
+            [
+               new BABYLON.Vector3.Zero(),
+               new BABYLON.Vector3(0, size, 0),
+               new BABYLON.Vector3(-0.05 * size, size * 0.95, 0),
+               new BABYLON.Vector3(0, size, 0),
+               new BABYLON.Vector3(0.05 * size, size * 0.95, 0)
+            ],
+            scene
+         );
+         axisY.color = new BABYLON.Color3(0, 1, 0);
+         axisY.renderingGroupId = 3;
+         axisY.parent = node;
+         axisY.translate(translation, 1, BABYLON.Space.LOCAL);
 
-      var yChar = makeTextPlane('Y', 'green');
-      yChar.position = new BABYLON.Vector3(0, 0.9 * size, -0.05 * size);
-      yChar.renderingGroupId = 3;
-      yChar.parent = node;
-      yChar.translate(translation, 1, BABYLON.Space.LOCAL);
+         var yChar = makeTextPlane('Y', 'green');
+         yChar.position = new BABYLON.Vector3(0, 0.9 * size, -0.05 * size);
+         yChar.renderingGroupId = 3;
+         yChar.parent = node;
+         yChar.translate(translation, 1, BABYLON.Space.LOCAL);
+      }
 
-      var axisZ = BABYLON.Mesh.CreateLines(
-         groupId + '_' + name + '_axisZ',
-         [
-            new BABYLON.Vector3.Zero(),
-            new BABYLON.Vector3(0, 0, size),
-            new BABYLON.Vector3(0, -0.05 * size, size * 0.95),
-            new BABYLON.Vector3(0, 0, size),
-            new BABYLON.Vector3(0, 0.05 * size, size * 0.95)
-         ],
-         scene
-      );
-      axisZ.color = new BABYLON.Color3(0, 0, 1);
-      axisZ.renderingGroupId = 3;
-      axisZ.parent = node;
-      axisZ.translate(translation, 1, BABYLON.Space.LOCAL);
+      if (axis.includes('z')) {
+         var axisZ = BABYLON.Mesh.CreateLines(
+            groupId + '_' + name + '_axisZ',
+            [
+               new BABYLON.Vector3.Zero(),
+               new BABYLON.Vector3(0, 0, size),
+               new BABYLON.Vector3(0, -0.05 * size, size * 0.95),
+               new BABYLON.Vector3(0, 0, size),
+               new BABYLON.Vector3(0, 0.05 * size, size * 0.95)
+            ],
+            scene
+         );
+         axisZ.color = new BABYLON.Color3(0, 0, 1);
+         axisZ.renderingGroupId = 3;
+         axisZ.parent = node;
+         axisZ.translate(translation, 1, BABYLON.Space.LOCAL);
 
-      var zChar = makeTextPlane('Z', 'blue');
-      zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
-      zChar.renderingGroupId = 3;
-      zChar.parent = node;
-      zChar.translate(translation, 1, BABYLON.Space.LOCAL);
+         var zChar = makeTextPlane('Z', 'blue');
+         zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
+         zChar.renderingGroupId = 3;
+         zChar.parent = node;
+         zChar.translate(translation, 1, BABYLON.Space.LOCAL);
+      }
    }
 
    // show grid
