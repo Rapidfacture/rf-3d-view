@@ -61,7 +61,7 @@ app.factory('bGraphicFactory', [function () {
       }
    };
 
-   // var previousSelected = [];
+
    var groups = {};
 
    var Services = {
@@ -71,7 +71,8 @@ app.factory('bGraphicFactory', [function () {
       paintView: _paintView,
       sliceView: _sliceView,
       showAxis: _showAxis,
-      showGrid: _showGrid
+      showGrid: _showGrid,
+      addPointToGrid: _addPointToGrid
    };
 
 
@@ -933,7 +934,7 @@ app.factory('bGraphicFactory', [function () {
       }
    }
 
-   // show grid
+   // grid functions
    function _showGrid (groupId, node, translation, rotation, plane, name, options, scene) {
       var gridMesh = BABYLON.Mesh.CreateGround(name, 1.0, 0.0, 1, scene);
       gridMesh.translate(translation, 1, BABYLON.Space.LOCAL);
@@ -941,6 +942,7 @@ app.factory('bGraphicFactory', [function () {
       gridMesh.scaling.x = options.sizeAxis1 || 100;
       gridMesh.scaling.z = options.sizeAxis2 || 100;
       gridMesh.isPickable = options.pickable || false;
+      gridMesh.plane = plane;
 
       if (plane === 'xy') gridMesh.rotate(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
       if (plane === 'yz') gridMesh.rotate(new BABYLON.Vector3(0, 0, 1), Math.PI / 2);
@@ -958,6 +960,37 @@ app.factory('bGraphicFactory', [function () {
       gridMesh.material = gridMaterial;
 
       return gridMesh;
+   }
+
+   function _addPointToGrid (grid, position, name, options, scene) {
+      var item = BABYLON.MeshBuilder.CreateGround(
+         'Point_' + name,
+         {width: 0.3, height: 0.3},
+         scene
+      );
+      // Set point in front for accurate visibility and selection
+      // min. 0.01 due to interaction radius of line
+      position.z -= 0.01;
+      item.position = position;
+      item.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+
+      var material = new BABYLON.StandardMaterial('point', scene);
+      material.diffuseColor = new BABYLON.Color3.Black();
+      material.emissiveColor = new BABYLON.Color3.Black();
+
+      item.material = material;
+
+      item.actionManager = new BABYLON.ActionManager(scene);
+      item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, item.material, 'diffuseColor', item.material.diffuseColor));
+      item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, item.material, 'emissiveColor', item.material.emissiveColor));
+      item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, item.material, 'diffuseColor', BABYLON.Color3.Red()));
+      item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, item.material, 'emissiveColor', BABYLON.Color3.Red()));
+
+      if (grid) {
+         item.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
+         item.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+      }
+
    }
 
    return Services;
