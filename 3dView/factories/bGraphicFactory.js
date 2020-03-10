@@ -120,27 +120,21 @@ app.factory('bGraphicFactory', [function () {
       return {angle: rawAngle % (2 * Math.PI), radius: c};
    }
 
-   function _getDragAndDropBehaviour () {
+   function _getDragAndDropBehavior (dragStartFunction, dragFunction, dragEndFunction) {
+      dragEndFunction = dragEndFunction || function () {};
+      dragFunction = dragFunction || function () {};
+      dragStartFunction = dragStartFunction || function () {};
+
       var behavior = new BABYLON.PointerDragBehavior({dragPlaneNormal: new BABYLON.Vector3(0, 0, 1)});
 
       // Use drag plane in world space
       behavior.useObjectOrienationForDragging = false;
 
-      /*
       // Listen to drag events
-      pointerDragBehavior1.onDragStartObservable.add(function (event) {
-         console.log('dragStart');
-         console.log(event);
-      });
-      pointerDragBehavior1.onDragObservable.add(function (event) {
-         console.log('drag');
-         console.log(event);
-      });
-      pointerDragBehavior1.onDragEndObservable.add(function (event) {
-         console.log('dragEnd');
-         console.log(event);
-      });
-      */
+      behavior.onDragStartObservable.add(function () { dragStartFunction(); });
+      behavior.onDragObservable.add(function () { dragFunction(); });
+      behavior.onDragEndObservable.add(function () { dragEndFunction(); });
+
       return behavior;
    }
 
@@ -586,7 +580,7 @@ app.factory('bGraphicFactory', [function () {
 
                   var line = BABYLON.Mesh.CreateLines(
                      (item.id === undefined ? 'Path_' + $index : item.id),
-                     new BABYLON.Path3D(path).getCurve(),
+                     path,
                      scene
                   );
 
@@ -639,7 +633,7 @@ app.factory('bGraphicFactory', [function () {
                } else {
                   var line = BABYLON.Mesh.CreateLines(
                      (item.id === undefined ? 'Path_' + $index : item.id),
-                     new BABYLON.Path3D(path.path).getCurve(),
+                     path.path,
                      scene
                   );
                   line.rotate(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
@@ -999,37 +993,39 @@ app.factory('bGraphicFactory', [function () {
    }
 
    function _addRadiusToGrid (grid, start, end, center, clockwise, name, options, scene) {
-      var coordinates = [new BABYLON.Vector3(start.x, start.y, start.z)];
+      var coordinates = [start];
       coordinates = coordinates.concat(_getRadiusPoints(start, end, center, clockwise));
 
-      var line = BABYLON.Mesh.CreateLines(
-         'Radius_' + name,
-         new BABYLON.Path3D(coordinates).getCurve(),
-         scene
-      );
+      var radius = BABYLON.Mesh.CreateLines('Radius_' + name, coordinates, scene, !options.replacement, options.replacement);
 
-      line.enableEdgesRendering();
-      line.edgesWidth = 10;
-      line.edgesColor = new BABYLON.Color4(0.3, 0.3, 0.3, 1);
+      radius.enableEdgesRendering();
+      radius.edgesWidth = 10;
+      radius.edgesColor = new BABYLON.Color4(0.3, 0.3, 0.3, 1);
 
-      line.actionManager = new BABYLON.ActionManager(scene);
-      line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, line, 'edgesColor', line.edgesColor));
-      line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, line, 'edgesColor', new BABYLON.Color4(1, 0, 0, 1)));
+      radius.actionManager = new BABYLON.ActionManager(scene);
+      radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, radius, 'edgesColor', radius.edgesColor));
+      radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, radius, 'edgesColor', new BABYLON.Color4(1, 0, 0, 1)));
 
-      if (options.dragAndDrop) line.addBehavior(_getDragAndDropBehaviour());
+      if (options.dragAndDrop) {
+         radius.addBehavior(
+            _getDragAndDropBehavior(
+               options.dragStartFunction,
+               options.dragFunction,
+               options.dragEndFunction
+            )
+         );
+      }
 
       if (grid) {
-         line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
-         line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+         radius.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
+         radius.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
       }
+
+      return radius;
    }
 
-   function _addPathToGrid (grid, coordinates, name, options, scene) {
-      var line = BABYLON.Mesh.CreateLines(
-         'Path_' + name,
-         new BABYLON.Path3D(coordinates).getCurve(),
-         scene
-      );
+   function _addPathToGrid (grid, start, end, name, options, scene) {
+      var line = BABYLON.Mesh.CreateLines('Path_' + name, [start, end], scene, !options.replacement, options.replacement);
 
       line.enableEdgesRendering();
       line.edgesWidth = 10;
@@ -1039,12 +1035,22 @@ app.factory('bGraphicFactory', [function () {
       line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, line, 'edgesColor', line.edgesColor));
       line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, line, 'edgesColor', new BABYLON.Color4(1, 0, 0, 1)));
 
-      if (options.dragAndDrop) line.addBehavior(_getDragAndDropBehaviour());
+      if (options.dragAndDrop) {
+         line.addBehavior(
+            _getDragAndDropBehavior(
+               options.dragStartFunction,
+               options.dragFunction,
+               options.dragEndFunction
+            )
+         );
+      }
 
       if (grid) {
          line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
          line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
       }
+
+      return line;
    }
 
    function _addPointToGrid (grid, position, name, options, scene) {
@@ -1071,12 +1077,22 @@ app.factory('bGraphicFactory', [function () {
       item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, item.material, 'diffuseColor', BABYLON.Color3.Red()));
       item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, item.material, 'emissiveColor', BABYLON.Color3.Red()));
 
-      if (options.dragAndDrop) item.addBehavior(_getDragAndDropBehaviour());
+      if (options.dragAndDrop) {
+         item.addBehavior(
+            _getDragAndDropBehavior(
+               options.dragStartFunction,
+               options.dragFunction,
+               options.dragEndFunction
+            )
+         );
+      }
 
       if (grid) {
          item.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
          item.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
       }
+
+      return item;
    }
 
    return Services;
