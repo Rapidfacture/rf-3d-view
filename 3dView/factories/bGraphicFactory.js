@@ -72,6 +72,7 @@ app.factory('bGraphicFactory', [function () {
       sliceView: _sliceView,
       showAxis: _showAxis,
       showGrid: _showGrid,
+      addRadiusToGrid: _addRadiusToGrid,
       addPathToGrid: _addPathToGrid,
       addPointToGrid: _addPointToGrid
    };
@@ -143,6 +144,40 @@ app.factory('bGraphicFactory', [function () {
       return behavior;
    }
 
+   function _getRadiusPoints (start, end, center, clockwise) {
+      var coordinates = [];
+      var startAngle, endAngle, steps, dAngle, radius;
+
+      end = _getAngle(center, end);
+      start = _getAngle(center, start);
+
+      startAngle = start.angle;
+      endAngle = end.angle;
+
+      radius = (start.radius + end.radius) / 2;
+
+      if (clockwise) {
+         while (endAngle < startAngle) endAngle += (2 * Math.PI);
+      } else {
+         while (startAngle < endAngle) startAngle += (2 * Math.PI);
+      }
+
+      steps = Math.ceil(Math.abs((startAngle - endAngle) / RAD_RESOLUTION));
+      dAngle = (startAngle - endAngle) / steps;
+
+      for (var j = 0; j < steps; j++) {
+         var angle = startAngle - (j + 1) * dAngle;
+
+         coordinates.push(new BABYLON.Vector3(
+            center.x + Math.sin(angle) * radius,
+            center.y + Math.cos(angle) * radius,
+            0
+         ));
+      }
+
+      return coordinates;
+   }
+
    function _getShape (elements, offset, split) {
       var path = [];
       var paths = [];
@@ -173,40 +208,16 @@ app.factory('bGraphicFactory', [function () {
             }
 
             if (elem.C) {
-               var center, start, end, startAngle, endAngle, steps, dAngle, radius;
                x = (typeof elem.C.X === 'number') ? elem.C.X + dX : path[prev].x;
                y = (typeof elem.C.Z === 'number') ? elem.C.Z + dZ : path[prev].y;
                z = 0;
 
-               center = {x: elem.CC.X, y: elem.CC.Z};
-               end = _getAngle(center, {x: x, y: y});
-               start = _getAngle(center, {x: path[prev].x, y: path[prev].y});
+               var end = {x: x, y: y, z: 0};
+               var start = {x: path[prev].x, y: path[prev].y, z: 0};
+               var center = {x: elem.CC.X, y: elem.CC.Z, z: 0};
+               var clockwise = elem.C.DR === '+';
 
-               startAngle = start.angle;
-               endAngle = end.angle;
-
-               radius = (start.radius + end.radius) / 2;
-
-               if (elem.C.DR === '+') {
-                  while (endAngle < startAngle) endAngle += (2 * Math.PI);
-               }
-
-               if (elem.C.DR === '-') {
-                  while (startAngle < endAngle) startAngle += (2 * Math.PI);
-               }
-
-               steps = Math.ceil(Math.abs((startAngle - endAngle) / RAD_RESOLUTION));
-               dAngle = (startAngle - endAngle) / steps;
-
-               for (var j = 0; j < steps; j++) {
-                  var angle = startAngle - (j + 1) * dAngle;
-
-                  path.push(new BABYLON.Vector3(
-                     elem.CC.X + Math.sin(angle) * radius,
-                     elem.CC.Z + Math.cos(angle) * radius,
-                     z
-                  ));
-               }
+               path = path.concat(_getRadiusPoints(start, end, center, clockwise));
             }
 
             if (elem.PATH) {
@@ -985,6 +996,32 @@ app.factory('bGraphicFactory', [function () {
       gridMesh.material = gridMaterial;
 
       return gridMesh;
+   }
+
+   function _addRadiusToGrid (grid, start, end, center, clockwise, name, options, scene) {
+      var coordinates = [new BABYLON.Vector3(start.x, start.y, start.z)];
+      coordinates = coordinates.concat(_getRadiusPoints(start, end, center, clockwise));
+
+      var line = BABYLON.Mesh.CreateLines(
+         'Radius_' + name,
+         new BABYLON.Path3D(coordinates).getCurve(),
+         scene
+      );
+
+      line.enableEdgesRendering();
+      line.edgesWidth = 10;
+      line.edgesColor = new BABYLON.Color4(0.3, 0.3, 0.3, 1);
+
+      line.actionManager = new BABYLON.ActionManager(scene);
+      line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, line, 'edgesColor', line.edgesColor));
+      line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, line, 'edgesColor', new BABYLON.Color4(1, 0, 0, 1)));
+
+      if (options.dragAndDrop) line.addBehavior(_getDragAndDropBehaviour());
+
+      if (grid) {
+         line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
+         line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+      }
    }
 
    function _addPathToGrid (grid, coordinates, name, options, scene) {
