@@ -62,16 +62,19 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
    function _addRadiusToGrid (grid, start, end, center, clockwise, name, options, scene) {
       var coordinates = bGraphicFactory.getRadiusPoints(start, end, center, clockwise, {nodes: 72, addStart: true});
+      var radius;
 
-      var radius = BABYLON.Mesh.CreateLines('Radius_' + name, coordinates, scene, !options.replacement, options.replacement);
+      if (options.registerActions) {
+         if (options.replacement) options.replacement.dispose();
+         radius = BABYLON.Mesh.CreateLines('Radius_' + name, coordinates, scene, true);
+
+      } else {
+         radius = BABYLON.Mesh.CreateLines('Radius_' + name, coordinates, scene, !options.replacement, options.replacement);
+      }
 
       radius.enableEdgesRendering();
       radius.edgesWidth = 10;
       radius.edgesColor = options.color || new BABYLON.Color4(0.3, 0.3, 0.3, 1);
-
-      radius.actionManager = new BABYLON.ActionManager(scene);
-      radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, radius, 'edgesColor', radius.edgesColor));
-      radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, radius, 'edgesColor', new BABYLON.Color4(1, 0, 0, 1)));
 
       if (options.dragAndDrop) {
          radius.addBehavior(
@@ -83,6 +86,12 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          );
       }
 
+      if (!options.registerActions) return radius;
+
+      radius.actionManager = new BABYLON.ActionManager(scene);
+      radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, radius, 'edgesColor', radius.edgesColor));
+      radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, radius, 'edgesColor', new BABYLON.Color4(1, 0, 0, 1)));
+
       if (grid) {
          radius.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
          radius.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
@@ -92,15 +101,19 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    }
 
    function _addPathToGrid (grid, start, end, name, options, scene) {
-      var line = BABYLON.Mesh.CreateLines('Path_' + name, [start, end], scene, !options.replacement, options.replacement);
+      var line;
+
+      if (options.registerActions) {
+         if (options.replacement) options.replacement.dispose();
+         line = BABYLON.Mesh.CreateLines('Path_' + name, [start, end], scene, true);
+
+      } else {
+         line = BABYLON.Mesh.CreateLines('Path_' + name, [start, end], scene, !options.replacement, options.replacement);
+      }
 
       line.enableEdgesRendering();
       line.edgesWidth = 10;
       line.edgesColor = options.color || new BABYLON.Color4(0.3, 0.3, 0.3, 1);
-
-      line.actionManager = new BABYLON.ActionManager(scene);
-      line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, line, 'edgesColor', line.edgesColor));
-      line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, line, 'edgesColor', new BABYLON.Color4(1, 0, 0, 1)));
 
       if (options.dragAndDrop) {
          line.addBehavior(
@@ -112,7 +125,14 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          );
       }
 
+      if (!options.registerActions) return line;
+
+      line.actionManager = new BABYLON.ActionManager(scene);
+      line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, line, 'edgesColor', line.edgesColor));
+      line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, line, 'edgesColor', new BABYLON.Color4(1, 0, 0, 1)));
+
       if (grid) {
+         console.log(grid);
          line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
          line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
       }
