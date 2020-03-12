@@ -308,9 +308,11 @@ app.factory('bGraphicFactory', [function () {
       return basicOffset;
    }
 
-   function _getRadiusPoints (start, end, center, clockwise) {
+   function _getRadiusPoints (start, end, center, clockwise, options) {
       var coordinates = [];
       var startAngle, endAngle, steps, dAngle, radius;
+
+      if (options.addStart) coordinates.push(new BABYLON.Vector3(start.x, start.y, start.z));
 
       end = _getAngle(center, end);
       start = _getAngle(center, start);
@@ -326,7 +328,7 @@ app.factory('bGraphicFactory', [function () {
          while (startAngle < endAngle) startAngle += (2 * Math.PI);
       }
 
-      steps = Math.ceil(Math.abs((startAngle - endAngle) / RAD_RESOLUTION));
+      steps = options.nodes || Math.ceil(Math.abs((startAngle - endAngle) / RAD_RESOLUTION));
       dAngle = (startAngle - endAngle) / steps;
 
       for (var j = 0; j < steps; j++) {

@@ -61,8 +61,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    }
 
    function _addRadiusToGrid (grid, start, end, center, clockwise, name, options, scene) {
-      var coordinates = [start];
-      coordinates = coordinates.concat(bGraphicFactory.getRadiusPoints(start, end, center, clockwise));
+      var coordinates = bGraphicFactory.getRadiusPoints(start, end, center, clockwise, {nodes: 72, addStart: true});
 
       var radius = BABYLON.Mesh.CreateLines('Radius_' + name, coordinates, scene, !options.replacement, options.replacement);
 
