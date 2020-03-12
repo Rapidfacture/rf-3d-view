@@ -7,7 +7,9 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       showGrid: _showGrid,
       addRadiusToGrid: _addRadiusToGrid,
       addStraightToGrid: _addStraightToGrid,
-      addPointToGrid: _addPointToGrid
+      addPointToGrid: _addPointToGrid,
+      updateBasicElement: _updateBasicElement,
+      updatePoint: _updatePoint
    };
 
    /* ----------- internal functions --------- */
@@ -66,10 +68,21 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       if (options.registerActions) {
          if (options.replacement) options.replacement.dispose();
-         radius = BABYLON.Mesh.CreateLines('Radius_' + name, coordinates, scene, true);
+         radius = BABYLON.Mesh.CreateLines(
+            (options.replacement ? options.replacement.name : 'Radius_' + name),
+            coordinates,
+            scene,
+            true
+         );
 
       } else {
-         radius = BABYLON.Mesh.CreateLines('Radius_' + name, coordinates, scene, !options.replacement, options.replacement);
+         radius = BABYLON.Mesh.CreateLines(
+            'Radius_' + name,
+            coordinates,
+            scene,
+            !options.replacement,
+            options.replacement
+         );
       }
 
       radius.enableEdgesRendering();
@@ -105,10 +118,21 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       if (options.registerActions) {
          if (options.replacement) options.replacement.dispose();
-         line = BABYLON.Mesh.CreateLines('Path_' + name, [start, end], scene, true);
+         line = BABYLON.Mesh.CreateLines(
+            (options.replacement ? options.replacement.name : 'Straight_' + name),
+            [start, end],
+            scene,
+            true
+         );
 
       } else {
-         line = BABYLON.Mesh.CreateLines('Path_' + name, [start, end], scene, !options.replacement, options.replacement);
+         line = BABYLON.Mesh.CreateLines(
+            'Straight_' + name,
+            [start, end],
+            scene,
+            !options.replacement,
+            options.replacement
+         );
       }
 
       line.enableEdgesRendering();
@@ -179,6 +203,23 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       }
 
       return item;
+   }
+
+   function _updateBasicElement (basicElement, options) {
+      if (options.color) {
+         basicElement.edgesColor = options.color;
+         basicElement.actionManager.actions[0].value = options.color;
+      }
+   }
+
+   function _updatePoint (point, options) {
+      if (options.color) {
+         point.material.diffuseColor = options.color;
+         point.material.emissiveColor = options.color;
+
+         point.actionManager.actions[0].value = options.color;
+         point.actionManager.actions[1].value = options.color;
+      }
    }
 
    return Services;
