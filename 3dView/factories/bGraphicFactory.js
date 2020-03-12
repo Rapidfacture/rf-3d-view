@@ -132,8 +132,12 @@ app.factory('bGraphicFactory', [function () {
 
       // Listen to drag events
       behavior.onDragStartObservable.add(function () { dragStartFunction(); });
-      behavior.onDragObservable.add(function () { dragFunction(); });
-      behavior.onDragEndObservable.add(function () { dragEndFunction(); });
+      // behavior.onDragObservable.add(function (event) {
+      //    dragFunction(event.dragPlanePoint);
+      // });
+      behavior.onDragEndObservable.add(function (event) {
+         dragEndFunction(event.dragPlanePoint);
+      });
 
       return behavior;
    }
@@ -1000,7 +1004,7 @@ app.factory('bGraphicFactory', [function () {
 
       radius.enableEdgesRendering();
       radius.edgesWidth = 10;
-      radius.edgesColor = new BABYLON.Color4(0.3, 0.3, 0.3, 1);
+      radius.edgesColor = options.color || new BABYLON.Color4(0.3, 0.3, 0.3, 1);
 
       radius.actionManager = new BABYLON.ActionManager(scene);
       radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, radius, 'edgesColor', radius.edgesColor));
@@ -1029,7 +1033,7 @@ app.factory('bGraphicFactory', [function () {
 
       line.enableEdgesRendering();
       line.edgesWidth = 10;
-      line.edgesColor = new BABYLON.Color4(0.3, 0.3, 0.3, 1);
+      line.edgesColor = options.color || new BABYLON.Color4(0.3, 0.3, 0.3, 1);
 
       line.actionManager = new BABYLON.ActionManager(scene);
       line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, line, 'edgesColor', line.edgesColor));
@@ -1066,8 +1070,8 @@ app.factory('bGraphicFactory', [function () {
       item.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
 
       var material = new BABYLON.StandardMaterial('point', scene);
-      material.diffuseColor = new BABYLON.Color3.Black();
-      material.emissiveColor = new BABYLON.Color3.Black();
+      material.diffuseColor = options.color || new BABYLON.Color3.Black();
+      material.emissiveColor = options.color || new BABYLON.Color3.Black();
 
       item.material = material;
 
