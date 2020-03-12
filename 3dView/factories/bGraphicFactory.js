@@ -127,17 +127,16 @@ app.factory('bGraphicFactory', [function () {
 
       var behavior = new BABYLON.PointerDragBehavior({dragPlaneNormal: new BABYLON.Vector3(0, 0, 1)});
 
+      // Disable acceleration
+      behavior.dragDeltaRatio = 1;
+
       // Use drag plane in world space
       behavior.useObjectOrienationForDragging = false;
 
       // Listen to drag events
       behavior.onDragStartObservable.add(function () { dragStartFunction(); });
-      // behavior.onDragObservable.add(function (event) {
-      //    dragFunction(event.dragPlanePoint);
-      // });
-      behavior.onDragEndObservable.add(function (event) {
-         dragEndFunction(event.dragPlanePoint);
-      });
+      behavior.onDragObservable.add(function () { dragFunction(); });
+      behavior.onDragEndObservable.add(function () { dragEndFunction(); });
 
       return behavior;
    }
