@@ -132,7 +132,6 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, line, 'edgesColor', new BABYLON.Color4(1, 0, 0, 1)));
 
       if (grid) {
-         console.log(grid);
          line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
          line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
       }
