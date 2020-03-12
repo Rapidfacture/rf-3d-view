@@ -6,7 +6,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    var Services = {
       showGrid: _showGrid,
       addRadiusToGrid: _addRadiusToGrid,
-      addPathToGrid: _addPathToGrid,
+      addStraightToGrid: _addStraightToGrid,
       addPointToGrid: _addPointToGrid
    };
 
@@ -100,7 +100,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       return radius;
    }
 
-   function _addPathToGrid (grid, start, end, name, options, scene) {
+   function _addStraightToGrid (grid, start, end, name, options, scene) {
       var line;
 
       if (options.registerActions) {
