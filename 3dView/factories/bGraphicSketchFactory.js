@@ -50,7 +50,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       var gridMaterial = new BABYLON.GridMaterial(name + 'Material', scene);
       gridMaterial.majorUnitFrequency = options.majorUnitFrequency || 10;
       gridMaterial.minorUnitVisibility = options.minorUnitVisibility || 0.3;
-      gridMaterial.gridRatio = options.gridRation || 0.01;
+      gridMaterial.gridRatio = options.gridRatio || 0.01;
       gridMaterial.backFaceCulling = options.backFaceCulling || false;
       gridMaterial.mainColor = options.mainColor || new BABYLON.Color3(1, 1, 1);
       gridMaterial.lineColor = options.lineColor || new BABYLON.Color3(1.0, 1.0, 1.0);
@@ -174,6 +174,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       position.z -= 0.01;
       item.position = position;
       item.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+      item.isPickable = options.isPickable;
+      item.renderingGroupId = 1;
 
       var material = new BABYLON.StandardMaterial('point', scene);
       material.diffuseColor = options.color || new BABYLON.Color3.Black();
