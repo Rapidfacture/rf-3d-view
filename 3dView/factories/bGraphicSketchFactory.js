@@ -69,38 +69,21 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       }
 
       function eLength (angle, x, y, d) {
-         /*
-         var a = y;
-         var b = Math.sqrt(Math.pow(y, 2) - 4 * Math.cos(angle) * d * (d * Math.cos(angle) - x));
-         var c = -2 * Math.cos(angle);
-
-         return [(a + b) / c, (a - b) / c];
-         */
-         return (x * Math.sin(angle) - y * Math.cos(angle)) /
-            (Math.pow(Math.sin(angle), 2) + Math.pow(Math.cos(angle), 2));
+         return (x * Math.sin(angle) - y * Math.cos(angle)) / (Math.pow(Math.sin(angle), 2) + Math.pow(Math.cos(angle), 2));
       }
 
-      // console.log(axis, dimension, start, end, position, options);
-
-      var dStart, dEnd, eEnd, eStart, vStart, vEnd, dimDirection, dimLength, dimAngle;
+      var dStart, dEnd, eEnd, eStart, vStart, vEnd, dimAngle;
       var axisColor = options.axisColor || new BABYLON.Color3(0, 0, 1);
       var textColor = options.textColor || 'black';
 
       if (axis === 'x') {
-         dimLength = Math.abs(end.x - start.x);
-         dimDirection = new BABYLON.Vector3((end.x - start.x) / dimLength, 0, 0);
          dimAngle = 0;
 
       } else if (axis === 'y') {
-         dimLength = Math.abs(end.y - start.y);
-         dimDirection = new BABYLON.Vector3(0, (end.y - start.y) / dimLength, 0);
          dimAngle = Math.PI / 2;
 
       } else if (axis === 'radius') {
-         var vector = end.subtract(start);
-
-         dimLength = vector.length();
-         dimDirection = vector.normalizeToNew();
+         var dimDirection = end.subtract(start).normalizeToNew();
          dimAngle = Math.atan2(dimDirection.x, dimDirection.y);
       }
 
@@ -147,24 +130,39 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       var tolValue = dimension.tolerance.value || '';
       var tolType = dimension.tolerance.type || '';
 
-      var dynamicTexture = new BABYLON.DynamicTexture('DynamicTexture', {width: 400, height: 300}, scene, true);
-      dynamicTexture.hasAlpha = true;
-      dynamicTexture.drawText(
-         '' + dimValue + tolType + tolValue,
-         null, 140,
-         'bold 28px Arial',
-         textColor,
-         'transparent',
-         true
-      );
+      // Set height for plane
+      var planeHeight = 1;
+      var fontSize = 72;
 
-      var plane = new BABYLON.Mesh.CreatePlane('TextPlane', 10, scene, true);
-      plane.material = new BABYLON.StandardMaterial('TextPlaneMaterial', scene);
-      plane.material.backFaceCulling = false;
-      plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
+      //Set height for dynamic texture
+      var DTHeight = 1.2 * fontSize; //or set as wished
+
+      //Calcultae ratio
+      var ratio = planeHeight / DTHeight;
+      //Set font
+      var font = 'bold ' + fontSize + 'px Arial';
+      var text = '' + dimValue + tolType + tolValue;
+      var temp = new BABYLON.DynamicTexture('DynamicTexture', 64, scene);
+      var tmpctx = temp.getContext();
+      tmpctx.font = font;
+      var DTWidth = tmpctx.measureText(text).width + 8;
+
+      //Calculate width the plane has to be
+      var planeWidth = DTWidth * ratio;
+
+      //Create dynamic texture and write the text
+      var dynamicTexture = new BABYLON.DynamicTexture('DynamicTexture', {width: DTWidth, height: DTHeight}, scene, false);
+      dynamicTexture.hasAlpha = true;
+      dynamicTexture.drawText(text, null, null, font, 'white', 'transparent', true);
+
+      //Create plane and set dynamic texture as material
+      var plane = BABYLON.MeshBuilder.CreatePlane('plane', {width: planeWidth, height: planeHeight}, scene);
+      plane.material = new BABYLON.StandardMaterial('mat', scene);
       plane.material.diffuseTexture = dynamicTexture;
+      plane.material.backFaceCulling = false;
       plane.position = position;
       plane.rotate(new BABYLON.Vector3(0, 0, 1), dimAngle);
+      plane.translate(new BABYLON.Vector3(0, 1, 0), 0.6, BABYLON.Space.LOCAL);
    }
 
    function _addPointToGrid (grid, position, name, options, scene) {
