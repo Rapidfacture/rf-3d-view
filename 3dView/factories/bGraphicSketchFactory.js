@@ -72,7 +72,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          return (x * Math.sin(angle) - y * Math.cos(angle)) / (Math.pow(Math.sin(angle), 2) + Math.pow(Math.cos(angle), 2));
       }
 
-      var dStart, dEnd, eEnd, eStart, vStart, vEnd, dimAngle;
+      var dStart, dEnd, eEnd, eStart, vStart, vEnd, dimAngle, dimensionLine, plane, dynamicTexture;
       var axisColor = options.axisColor || new BABYLON.Color3(0, 0, 1);
       var textColorDefault = options.textColor || new BABYLON.Color3(0, 0, 0);
       var textColorMouseOver = options.textColorMouseOver || new BABYLON.Color3(1, 0, 0);
@@ -85,7 +85,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       } else if (axis === 'radius') {
          var dimDirection = end.subtract(start).normalizeToNew();
-         dimAngle = Math.atan2(dimDirection.x, dimDirection.y);
+         dimAngle = Math.atan2(dimDirection.y, dimDirection.x);
       }
 
       vStart = start.subtract(position);
@@ -96,37 +96,6 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       eStart = eLength(dimAngle, vStart.x, vStart.y, dStart);
       eEnd = eLength(dimAngle, vEnd.x, vEnd.y, dEnd);
-
-      var dimensionNode = new BABYLON.TransformNode('Dimension_' + name, scene);
-
-      var dimensionLine = BABYLON.Mesh.CreateLines(
-         'Dimension_arrow_' + name,
-         [
-            // Line start
-            new BABYLON.Vector3(dStart, -eStart + Math.sign(eStart) * 0.3, 0),
-            new BABYLON.Vector3(dStart, Math.sign(eStart) * 0.1, 0),
-            // Arrow start
-            new BABYLON.Vector3(dStart, 0, 0),
-            new BABYLON.Vector3(dStart + 0.2, 0.1, 0),
-            new BABYLON.Vector3(dStart, 0, 0),
-            new BABYLON.Vector3(dStart + 0.2, -0.1, 0),
-            new BABYLON.Vector3(dStart, 0, 0),
-            // DimensionLine
-            new BABYLON.Vector3(dEnd, 0, 0),
-            // Arrow end
-            new BABYLON.Vector3(dEnd - 0.2, 0.1, 0),
-            new BABYLON.Vector3(dEnd, 0, 0),
-            new BABYLON.Vector3(dEnd - 0.2, -0.1, 0),
-            new BABYLON.Vector3(dEnd, 0, 0),
-            // Line end
-            new BABYLON.Vector3(dEnd, Math.sign(eEnd) * 0.1, 0),
-            new BABYLON.Vector3(dEnd, -eEnd + Math.sign(eEnd) * 0.3, 0)
-         ],
-         scene
-      );
-      dimensionLine.parent = dimensionNode;
-      dimensionLine.color = axisColor;
-      dimensionLine.renderingGroupId = 3;
 
       var dimValue = dimension.value;
       var tolValue = dimension.tolerance.value || '';
@@ -152,20 +121,99 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       // Calculate width the plane has to be
       var planeWidth = DTWidth * ratio;
 
-      // Create dynamic texture and write the text
-      var dynamicTexture = new BABYLON.DynamicTexture('Dimension_label_' + name, {width: DTWidth, height: DTHeight}, scene, false);
-      dynamicTexture.hasAlpha = true;
-      dynamicTexture.drawText(text, null, null, font, 'white', 'transparent', true);
+      if (options.registerActions) {
+         if (options.replacement) options.replacement.dispose();
+
+         dimensionLine = BABYLON.Mesh.CreateLines(
+            'Dimension_arrow_' + name,
+            [
+               // Line start
+               new BABYLON.Vector3(dStart, -eStart + Math.sign(eStart) * 0.3, 0),
+               new BABYLON.Vector3(dStart, Math.sign(eStart) * 0.1, 0),
+               // Arrow start
+               new BABYLON.Vector3(dStart, 0, 0),
+               new BABYLON.Vector3(dStart + 0.2, 0.1, 0),
+               new BABYLON.Vector3(dStart, 0, 0),
+               new BABYLON.Vector3(dStart + 0.2, -0.1, 0),
+               new BABYLON.Vector3(dStart, 0, 0),
+               // DimensionLine
+               new BABYLON.Vector3(dEnd, 0, 0),
+               // Arrow end
+               new BABYLON.Vector3(dEnd - 0.2, 0.1, 0),
+               new BABYLON.Vector3(dEnd, 0, 0),
+               new BABYLON.Vector3(dEnd - 0.2, -0.1, 0),
+               new BABYLON.Vector3(dEnd, 0, 0),
+               // Line end
+               new BABYLON.Vector3(dEnd, Math.sign(eEnd) * 0.1, 0),
+               new BABYLON.Vector3(dEnd, -eEnd + Math.sign(eEnd) * 0.3, 0)
+            ],
+            scene
+         );
+
+         plane = BABYLON.MeshBuilder.CreatePlane(
+            'Dimension_plane_' + name,
+            {width: planeWidth, height: planeHeight},
+            scene
+         );
+
+         dynamicTexture = new BABYLON.DynamicTexture(
+            'Dimension_label_' + name,
+            {width: DTWidth, height: DTHeight},
+            scene
+         );
+         // Create dynamic texture and write the text
+         dynamicTexture.hasAlpha = true;
+         dynamicTexture.drawText(text, null, null, font, 'white', 'transparent', true);
+
+      } else {
+         var existingMeshes = options.replacement.getChildMeshes();
+
+         dimensionLine = BABYLON.Mesh.CreateLines(
+            'Dimension_arrow_' + name,
+            [
+               // Line start
+               new BABYLON.Vector3(dStart, -eStart + Math.sign(eStart) * 0.3, 0),
+               new BABYLON.Vector3(dStart, Math.sign(eStart) * 0.1, 0),
+               // Arrow start
+               new BABYLON.Vector3(dStart, 0, 0),
+               new BABYLON.Vector3(dStart + 0.2, 0.1, 0),
+               new BABYLON.Vector3(dStart, 0, 0),
+               new BABYLON.Vector3(dStart + 0.2, -0.1, 0),
+               new BABYLON.Vector3(dStart, 0, 0),
+               // DimensionLine
+               new BABYLON.Vector3(dEnd, 0, 0),
+               // Arrow end
+               new BABYLON.Vector3(dEnd - 0.2, 0.1, 0),
+               new BABYLON.Vector3(dEnd, 0, 0),
+               new BABYLON.Vector3(dEnd - 0.2, -0.1, 0),
+               new BABYLON.Vector3(dEnd, 0, 0),
+               // Line end
+               new BABYLON.Vector3(dEnd, Math.sign(eEnd) * 0.1, 0),
+               new BABYLON.Vector3(dEnd, -eEnd + Math.sign(eEnd) * 0.3, 0)
+            ],
+            scene,
+            !options.replacement,
+            existingMeshes[0]
+         );
+
+         plane = BABYLON.MeshBuilder.CreatePlane(
+            'Dimension_plane_' + name,
+            {width: planeWidth, height: planeHeight},
+            scene,
+            !options.replacement,
+            existingMeshes[1]
+         );
+      }
+
+      dimensionLine.color = axisColor;
 
       // Create plane and set dynamic texture as material
-      var plane = BABYLON.MeshBuilder.CreatePlane('Dimension_plane_' + name, {width: planeWidth, height: planeHeight}, scene);
       plane.material = new BABYLON.StandardMaterial('mat', scene);
       plane.material.diffuseColor = textColorDefault;
       plane.material.emissiveColor = textColorDefault;
-      plane.material.diffuseTexture = dynamicTexture;
+      if (dynamicTexture) plane.material.diffuseTexture = dynamicTexture;
       plane.material.backFaceCulling = false;
 
-      plane.parent = dimensionNode;
       plane.translate(new BABYLON.Vector3(0, 1, 0), 0.6, BABYLON.Space.LOCAL);
 
       plane.actionManager = new BABYLON.ActionManager(scene);
@@ -179,9 +227,13 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          plane.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
       }
 
+      var dimensionNode = new BABYLON.TransformNode('Dimension_' + name, scene);
+
+      dimensionLine.parent = dimensionNode;
+      plane.parent = dimensionNode;
+
       dimensionNode.position = position;
       dimensionNode.rotate(new BABYLON.Vector3(0, 0, 1), dimAngle);
-
 
       return dimensionNode;
    }
