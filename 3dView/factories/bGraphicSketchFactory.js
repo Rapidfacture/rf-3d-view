@@ -63,7 +63,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       return gridMesh;
    }
 
-   function _addDimensionToGrid (grid, axis, dimension, start, end, position, options, scene) {
+   function _addDimensionToGrid (grid, axis, dimension, start, end, position, name, options, scene) {
       function dLength (angle, x, y) {
          return (y * Math.sin(angle) + x * Math.cos(angle)) / (Math.pow(Math.sin(angle), 2) + Math.pow(Math.cos(angle), 2));
       }
@@ -74,7 +74,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       var dStart, dEnd, eEnd, eStart, vStart, vEnd, dimAngle;
       var axisColor = options.axisColor || new BABYLON.Color3(0, 0, 1);
-      var textColor = options.textColor || 'black';
+      var textColorDefault = options.textColor || new BABYLON.Color3(0, 0, 0);
+      var textColorMouseOver = options.textColorMouseOver || new BABYLON.Color3(1, 0, 0);
 
       if (axis === 'x') {
          dimAngle = 0;
@@ -96,8 +97,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       eStart = eLength(dimAngle, vStart.x, vStart.y, dStart);
       eEnd = eLength(dimAngle, vEnd.x, vEnd.y, dEnd);
 
+      var dimensionNode = new BABYLON.TransformNode('Dimension_' + name, scene);
+
       var dimensionLine = BABYLON.Mesh.CreateLines(
-         'Dimension',
+         'Dimension_arrow_' + name,
          [
             // Line start
             new BABYLON.Vector3(dStart, -eStart + Math.sign(eStart) * 0.3, 0),
@@ -121,10 +124,9 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          ],
          scene
       );
+      dimensionLine.parent = dimensionNode;
       dimensionLine.color = axisColor;
       dimensionLine.renderingGroupId = 3;
-      dimensionLine.position = position;
-      dimensionLine.rotate(new BABYLON.Vector3(0, 0, 1), dimAngle);
 
       var dimValue = dimension.value;
       var tolValue = dimension.tolerance.value || '';
@@ -134,12 +136,12 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       var planeHeight = 1;
       var fontSize = 72;
 
-      //Set height for dynamic texture
-      var DTHeight = 1.2 * fontSize; //or set as wished
+      // Set height for dynamic texture
+      var DTHeight = 1.2 * fontSize; // or set as wished
 
-      //Calcultae ratio
+      // Calcultae ratio
       var ratio = planeHeight / DTHeight;
-      //Set font
+      // Set font
       var font = 'bold ' + fontSize + 'px Arial';
       var text = '' + dimValue + tolType + tolValue;
       var temp = new BABYLON.DynamicTexture('DynamicTexture', 64, scene);
@@ -147,25 +149,47 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       tmpctx.font = font;
       var DTWidth = tmpctx.measureText(text).width + 8;
 
-      //Calculate width the plane has to be
+      // Calculate width the plane has to be
       var planeWidth = DTWidth * ratio;
 
-      //Create dynamic texture and write the text
-      var dynamicTexture = new BABYLON.DynamicTexture('DynamicTexture', {width: DTWidth, height: DTHeight}, scene, false);
+      // Create dynamic texture and write the text
+      var dynamicTexture = new BABYLON.DynamicTexture('Dimension_label_' + name, {width: DTWidth, height: DTHeight}, scene, false);
       dynamicTexture.hasAlpha = true;
       dynamicTexture.drawText(text, null, null, font, 'white', 'transparent', true);
 
-      //Create plane and set dynamic texture as material
-      var plane = BABYLON.MeshBuilder.CreatePlane('plane', {width: planeWidth, height: planeHeight}, scene);
+      // Create plane and set dynamic texture as material
+      var plane = BABYLON.MeshBuilder.CreatePlane('Dimension_plane_' + name, {width: planeWidth, height: planeHeight}, scene);
       plane.material = new BABYLON.StandardMaterial('mat', scene);
+      plane.material.diffuseColor = textColorDefault;
+      plane.material.emissiveColor = textColorDefault;
       plane.material.diffuseTexture = dynamicTexture;
       plane.material.backFaceCulling = false;
-      plane.position = position;
-      plane.rotate(new BABYLON.Vector3(0, 0, 1), dimAngle);
+
+      plane.parent = dimensionNode;
       plane.translate(new BABYLON.Vector3(0, 1, 0), 0.6, BABYLON.Space.LOCAL);
+
+      plane.actionManager = new BABYLON.ActionManager(scene);
+      plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, plane.material, 'diffuseColor', plane.material.diffuseColor));
+      plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, plane.material, 'emissiveColor', plane.material.emissiveColor));
+      plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, plane.material, 'diffuseColor', textColorMouseOver));
+      plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, plane.material, 'emissiveColor', textColorMouseOver));
+
+      if (grid) {
+         plane.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
+         plane.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+      }
+
+      dimensionNode.position = position;
+      dimensionNode.rotate(new BABYLON.Vector3(0, 0, 1), dimAngle);
+
+
+      return dimensionNode;
    }
 
    function _addPointToGrid (grid, position, name, options, scene) {
+      var colorDefault = options.color || new BABYLON.Color3.Black();
+      var colorMouseOver = options.colorMouseOver || new BABYLON.Color3.Red();
+
       var item = BABYLON.MeshBuilder.CreateGround(
          'Point_' + name,
          {width: 0.3, height: 0.3},
@@ -180,16 +204,16 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       item.renderingGroupId = 1;
 
       var material = new BABYLON.StandardMaterial('point', scene);
-      material.diffuseColor = options.color || new BABYLON.Color3.Black();
-      material.emissiveColor = options.color || new BABYLON.Color3.Black();
+      material.diffuseColor = colorDefault;
+      material.emissiveColor = colorDefault;
 
       item.material = material;
 
       item.actionManager = new BABYLON.ActionManager(scene);
       item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, item.material, 'diffuseColor', item.material.diffuseColor));
       item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, item.material, 'emissiveColor', item.material.emissiveColor));
-      item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, item.material, 'diffuseColor', BABYLON.Color3.Red()));
-      item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, item.material, 'emissiveColor', BABYLON.Color3.Red()));
+      item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, item.material, 'diffuseColor', colorMouseOver));
+      item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, item.material, 'emissiveColor', colorMouseOver));
 
       if (options.dragAndDrop) {
          item.addBehavior(
@@ -213,6 +237,9 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       var coordinates = bGraphicFactory.getRadiusPoints(start, end, center, clockwise, {nodes: 72, addStart: true});
       var radius;
 
+      var colorDefault = options.color || new BABYLON.Color4(0.3, 0.3, 0.3, 1);
+      var colorMouseOver = options.colorMouseOver || new BABYLON.Color4(1, 0, 0, 1);
+
       if (options.registerActions) {
          if (options.replacement) options.replacement.dispose();
          radius = BABYLON.Mesh.CreateLines(
@@ -234,7 +261,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       radius.enableEdgesRendering();
       radius.edgesWidth = 10;
-      radius.edgesColor = options.color || new BABYLON.Color4(0.3, 0.3, 0.3, 1);
+      radius.edgesColor = colorDefault;
 
       if (options.dragAndDrop) {
          radius.addBehavior(
@@ -250,7 +277,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       radius.actionManager = new BABYLON.ActionManager(scene);
       radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, radius, 'edgesColor', radius.edgesColor));
-      radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, radius, 'edgesColor', new BABYLON.Color4(1, 0, 0, 1)));
+      radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, radius, 'edgesColor', colorMouseOver));
 
       if (grid) {
          radius.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
@@ -263,6 +290,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    function _addStraightToGrid (grid, start, end, name, options, scene) {
       var line;
 
+      var colorDefault = options.color || new BABYLON.Color4(0.3, 0.3, 0.3, 1);
+      var colorMouseOver = options.colorMouseOver || new BABYLON.Color4(1, 0, 0, 1);
       if (options.registerActions) {
          if (options.replacement) options.replacement.dispose();
          line = BABYLON.Mesh.CreateLines(
@@ -284,7 +313,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       line.enableEdgesRendering();
       line.edgesWidth = 10;
-      line.edgesColor = options.color || new BABYLON.Color4(0.3, 0.3, 0.3, 1);
+      line.edgesColor = colorDefault;
 
       if (options.dragAndDrop) {
          line.addBehavior(
@@ -300,7 +329,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       line.actionManager = new BABYLON.ActionManager(scene);
       line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, line, 'edgesColor', line.edgesColor));
-      line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, line, 'edgesColor', new BABYLON.Color4(1, 0, 0, 1)));
+      line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, line, 'edgesColor', colorMouseOver));
 
       if (grid) {
          line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
