@@ -4,14 +4,35 @@
 
 app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFactory) {
    var Services = {
-      showGrid: _showGrid,
       addDimensionToGrid: _addDimensionToGrid,
       addPointToGrid: _addPointToGrid,
       addRadiusToGrid: _addRadiusToGrid,
       addStraightToGrid: _addStraightToGrid,
+      showGrid: _showGrid,
+      start: _start,
       updateBasicElement: _updateBasicElement,
       updatePoint: _updatePoint
    };
+
+   var basicElementColors = {
+      default: new BABYLON.Color4(0.3, 0.3, 0.3, 1),
+      fix: new BABYLON.Color4(0, 1, 0, 1),
+      mouseOver: new BABYLON.Color4(1, 0, 0, 1),
+      selected: new BABYLON.Color4(1, 0, 0, 1)
+   };
+   var dimensionColors = {
+      defaultAxis: new BABYLON.Color3.Blue(),
+      defaultText: new BABYLON.Color3.Black(),
+      mouseOverText: new BABYLON.Color3.Red()
+   };
+   var pointColors = {
+      default: new BABYLON.Color3.Gray(),
+      fix: new BABYLON.Color3.Green(),
+      mouseOver: new BABYLON.Color3.Red(),
+      selected: new BABYLON.Color3.Red(),
+      snap: new BABYLON.Color3.Black()
+   };
+   var grid = {};
 
    /* ----------- internal functions --------- */
    function _getDragAndDropBehavior (dragStartFunction, dragFunction, dragEndFunction) {
@@ -36,33 +57,6 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    }
 
    /* ----------- external functions --------- */
-   function _showGrid (groupId, node, translation, rotation, plane, name, options, scene) {
-      var gridMesh = BABYLON.Mesh.CreateGround(name, 1.0, 0.0, 1, scene);
-      gridMesh.translate(translation, 1, BABYLON.Space.LOCAL);
-      gridMesh.parent = node;
-      gridMesh.scaling.x = options.sizeAxis1 || 100;
-      gridMesh.scaling.z = options.sizeAxis2 || 100;
-      gridMesh.isPickable = options.pickable || false;
-      gridMesh.plane = plane;
-
-      if (plane === 'xy') gridMesh.rotate(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
-      if (plane === 'yz') gridMesh.rotate(new BABYLON.Vector3(0, 0, 1), Math.PI / 2);
-
-      var gridMaterial = new BABYLON.GridMaterial(name + 'Material', scene);
-      gridMaterial.majorUnitFrequency = options.majorUnitFrequency || 10;
-      gridMaterial.minorUnitVisibility = options.minorUnitVisibility || 0.3;
-      gridMaterial.gridRatio = options.gridRatio || 0.01;
-      gridMaterial.backFaceCulling = options.backFaceCulling || false;
-      gridMaterial.mainColor = options.mainColor || new BABYLON.Color3(1, 1, 1);
-      gridMaterial.lineColor = options.lineColor || new BABYLON.Color3(1.0, 1.0, 1.0);
-      gridMaterial.opacity = options.opacity || 0.8;
-      gridMaterial.zOffset = options.zOffset || 1.0;
-
-      gridMesh.material = gridMaterial;
-
-      return gridMesh;
-   }
-
    function _addDimensionToGrid (grid, axis, dimension, start, end, position, name, options, scene) {
       function dLength (angle, x, y) {
          return (y * Math.sin(angle) + x * Math.cos(angle)) / (Math.pow(Math.sin(angle), 2) + Math.pow(Math.cos(angle), 2));
@@ -73,9 +67,9 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       }
 
       var dStart, dEnd, eEnd, eStart, vStart, vEnd, dimAngle, dimensionLine, plane, dynamicTexture;
-      var axisColor = options.axisColor || new BABYLON.Color3(0, 0, 1);
-      var textColorDefault = options.textColor || new BABYLON.Color3(0, 0, 0);
-      var textColorMouseOver = options.textColorMouseOver || new BABYLON.Color3(1, 0, 0);
+      var axisColor = dimensionColors[options.status + 'Axis'];
+      var textColorDefault = dimensionColors[options.status + 'Text'];
+      var textColorMouseOver = dimensionColors.mouseOverText;
 
       if (axis === 'x') {
          dimAngle = 0;
@@ -239,8 +233,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    }
 
    function _addPointToGrid (grid, position, name, options, scene) {
-      var colorDefault = options.color || new BABYLON.Color3.Black();
-      var colorMouseOver = options.colorMouseOver || new BABYLON.Color3.Red();
+      var colorStandard = pointColors[options.status];
+      var colorMouseOver = pointColors.mouseOver;
 
       var item = BABYLON.MeshBuilder.CreateGround(
          'Point_' + name,
@@ -253,11 +247,12 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       item.position = position;
       item.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
       item.isPickable = options.isPickable;
+      item.isVisible = options.isVisible || true;
       item.renderingGroupId = 1;
 
       var material = new BABYLON.StandardMaterial('point', scene);
-      material.diffuseColor = colorDefault;
-      material.emissiveColor = colorDefault;
+      material.diffuseColor = colorStandard;
+      material.emissiveColor = colorStandard;
 
       item.material = material;
 
@@ -289,8 +284,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       var coordinates = bGraphicFactory.getRadiusPoints(start, end, center, clockwise, {nodes: 72, addStart: true});
       var radius;
 
-      var colorDefault = options.color || new BABYLON.Color4(0.3, 0.3, 0.3, 1);
-      var colorMouseOver = options.colorMouseOver || new BABYLON.Color4(1, 0, 0, 1);
+      var colorDefault = basicElementColors[options.status];
+      var colorMouseOver = basicElementColors.mouseOver;
 
       if (options.registerActions) {
          if (options.replacement) options.replacement.dispose();
@@ -342,8 +337,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    function _addStraightToGrid (grid, start, end, name, options, scene) {
       var line;
 
-      var colorDefault = options.color || new BABYLON.Color4(0.3, 0.3, 0.3, 1);
-      var colorMouseOver = options.colorMouseOver || new BABYLON.Color4(1, 0, 0, 1);
+      var colorDefault = basicElementColors[options.status];
+      var colorMouseOver = basicElementColors.mouseOver;
       if (options.registerActions) {
          if (options.replacement) options.replacement.dispose();
          line = BABYLON.Mesh.CreateLines(
@@ -391,20 +386,58 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       return line;
    }
 
+   function _showGrid (groupId, node, translation, rotation, plane, name, options, scene) {
+      var gridMesh = BABYLON.Mesh.CreateGround(name, 1.0, 0.0, 1, scene);
+      gridMesh.translate(translation, 1, BABYLON.Space.LOCAL);
+      gridMesh.parent = node;
+      gridMesh.scaling.x = options.sizeAxis1 || 100;
+      gridMesh.scaling.z = options.sizeAxis2 || 100;
+      gridMesh.isPickable = options.pickable || false;
+      gridMesh.plane = plane;
+
+      if (plane === 'xy') gridMesh.rotate(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
+      if (plane === 'yz') gridMesh.rotate(new BABYLON.Vector3(0, 0, 1), Math.PI / 2);
+
+      var gridMaterial = new BABYLON.GridMaterial(name + 'Material', scene);
+      gridMaterial.majorUnitFrequency = options.majorUnitFrequency || 10;
+      gridMaterial.minorUnitVisibility = options.minorUnitVisibility || 0.3;
+      gridMaterial.gridRatio = options.gridRatio || 0.01;
+      gridMaterial.backFaceCulling = options.backFaceCulling || false;
+      gridMaterial.mainColor = options.mainColor || new BABYLON.Color3(1, 1, 1);
+      gridMaterial.lineColor = options.lineColor || new BABYLON.Color3(1.0, 1.0, 1.0);
+      gridMaterial.opacity = options.opacity || 0.8;
+      gridMaterial.zOffset = options.zOffset || 1.0;
+
+      gridMesh.material = gridMaterial;
+
+      return gridMesh;
+   }
+
+   function _start (settings) {
+      if (settings.colorsPoint) pointColors = settings.colorsPoint;
+      if (settings.colorsBasicElement) basicElementColors = settings.colorsBasicElement;
+      if (settings.colorsDimension) dimensionColors = settings.colorsDimension;
+      if (settings.grid) grid = settings.grid;
+   }
+
    function _updateBasicElement (basicElement, options) {
-      if (options.color) {
-         basicElement.edgesColor = options.color;
-         basicElement.actionManager.actions[0].value = options.color;
+      if (options.status) {
+         var color = basicElementColors[options.status];
+
+         basicElement.edgesColor = color;
+         basicElement.actionManager.actions[0].value = color;
       }
    }
 
    function _updatePoint (point, options) {
-      if (options.color) {
-         point.material.diffuseColor = options.color;
-         point.material.emissiveColor = options.color;
+      if (options.status) {
+         var color = pointColors[options.status];
 
-         point.actionManager.actions[0].value = options.color;
-         point.actionManager.actions[1].value = options.color;
+         point.material.diffuseColor = color;
+         point.material.emissiveColor = color;
+
+         point.actionManager.actions[0].value = color;
+         point.actionManager.actions[1].value = color;
       }
    }
 
