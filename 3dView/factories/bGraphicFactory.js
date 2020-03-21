@@ -328,6 +328,8 @@ app.factory('bGraphicFactory', [function () {
          while (startAngle < endAngle) startAngle += (2 * Math.PI);
       }
 
+      if (Math.abs(startAngle - endAngle) < TOLERANCE) startAngle += Math.PI * 2;
+
       steps = options.nodes || Math.ceil(Math.abs((startAngle - endAngle) / RAD_RESOLUTION));
       dAngle = (startAngle - endAngle) / steps;
 
