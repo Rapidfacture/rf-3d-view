@@ -1,7 +1,5 @@
 // main application data; stores json drawing (geometry, features, metaData); stack for undo/redo
 
-'use strict';
-
 app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFactory) {
    var Services = {
       addDimensionToGrid: _addDimensionToGrid,
@@ -32,7 +30,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       selected: new BABYLON.Color3.Red(),
       snap: new BABYLON.Color3.Black()
    };
-   var grid = {};
+   // var grid = {};
 
    /* ----------- internal functions --------- */
    function _getDragAndDropBehavior (dragStartFunction, dragFunction, dragEndFunction) {
@@ -417,7 +415,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       if (settings.colorsPoint) pointColors = settings.colorsPoint;
       if (settings.colorsBasicElement) basicElementColors = settings.colorsBasicElement;
       if (settings.colorsDimension) dimensionColors = settings.colorsDimension;
-      if (settings.grid) grid = settings.grid;
+      // if (settings.grid) grid = settings.grid;
    }
 
    function _updateBasicElement (basicElement, options) {

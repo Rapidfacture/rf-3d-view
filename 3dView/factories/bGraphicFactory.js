@@ -1,7 +1,5 @@
 // main application data; stores json drawing (geometry, features, metaData); stack for undo/redo
 
-'use strict';
-
 app.factory('bGraphicFactory', [function () {
    var TOLERANCE = 1e-12;
    var RAD_RESOLUTION = 0.209438;
