@@ -15,6 +15,9 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       updatePoint: _updatePoint
    };
 
+   var basicElementProperties = {
+      lineWidth: 10
+   };
    var basicElementColors = {
       default: new BABYLON.Color4(0.3, 0.3, 0.3, 1),
       fix: new BABYLON.Color4(0, 1, 0, 1),
@@ -33,7 +36,6 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       selected: new BABYLON.Color3.Red(),
       snap: new BABYLON.Color3.Black()
    };
-   // var grid = {};
 
    /* ----------- internal functions --------- */
    function _getGridRatio (groundSize, gridSize) {
@@ -243,7 +245,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       var item = BABYLON.MeshBuilder.CreateGround(
          'Point_' + name,
-         {width: 0.3, height: 0.3},
+         {width: 0.3, height: 0.3, updateable: true},
          scene
       );
       // Set point in front for accurate visibility and selection
@@ -312,7 +314,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       }
 
       radius.enableEdgesRendering();
-      radius.edgesWidth = 10;
+      radius.edgesWidth = basicElementProperties.lineWidth;
       radius.edgesColor = colorDefault;
       radius.isPickable = (options.isPickable === undefined ? true : options.isPickable);
 
@@ -365,7 +367,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       }
 
       line.enableEdgesRendering();
-      line.edgesWidth = 10;
+      line.edgesWidth = basicElementProperties.lineWidth;
       line.edgesColor = colorDefault;
       line.isPickable = (options.isPickable === undefined ? true : options.isPickable);
 
@@ -437,6 +439,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
          basicElement.edgesColor = color;
          basicElement.actionManager.actions[0].value = color;
+
+      }
+      if (options.scaling !== undefined) {
+         basicElement.edgesWidth = basicElementProperties.lineWidth * options.scaling;
       }
    }
 
@@ -471,6 +477,11 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
          point.actionManager.actions[0].value = color;
          point.actionManager.actions[1].value = color;
+      }
+
+      if (options.scaling) {
+         point.scaling.x = options.scaling;
+         point.scaling.z = options.scaling;
       }
    }
 
