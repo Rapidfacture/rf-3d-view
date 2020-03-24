@@ -9,6 +9,9 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       showGrid: _showGrid,
       start: _start,
       updateBasicElement: _updateBasicElement,
+      updateConstraint: _updateConstraint,
+      updateDimension: _updateDimension,
+      updateGrid: _updateGrid,
       updatePoint: _updatePoint
    };
 
@@ -33,6 +36,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    // var grid = {};
 
    /* ----------- internal functions --------- */
+   function _getGridRatio (groundSize, gridSize) {
+      return gridSize / groundSize;
+   }
+
    function _getDragAndDropBehavior (dragStartFunction, dragFunction, dragEndFunction) {
       dragEndFunction = dragEndFunction || function () {};
       dragFunction = dragFunction || function () {};
@@ -307,6 +314,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       radius.enableEdgesRendering();
       radius.edgesWidth = 10;
       radius.edgesColor = colorDefault;
+      radius.isPickable = (options.isPickable === undefined ? true : options.isPickable);
 
       if (options.dragAndDrop) {
          radius.addBehavior(
@@ -359,6 +367,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       line.enableEdgesRendering();
       line.edgesWidth = 10;
       line.edgesColor = colorDefault;
+      line.isPickable = (options.isPickable === undefined ? true : options.isPickable);
 
       if (options.dragAndDrop) {
          line.addBehavior(
@@ -385,11 +394,15 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    }
 
    function _showGrid (groupId, node, translation, rotation, plane, name, options, scene) {
+      var sizeAxis = options.sizeAxis || 100;
+      var gridWidth = options.gridWidth || 1;
+
+      var gridRatio = _getGridRatio(sizeAxis, gridWidth);
       var gridMesh = BABYLON.Mesh.CreateGround(name, 1.0, 0.0, 1, scene);
       gridMesh.translate(translation, 1, BABYLON.Space.LOCAL);
       gridMesh.parent = node;
-      gridMesh.scaling.x = options.sizeAxis1 || 100;
-      gridMesh.scaling.z = options.sizeAxis2 || 100;
+      gridMesh.scaling.x = sizeAxis;
+      gridMesh.scaling.z = sizeAxis;
       gridMesh.isPickable = options.pickable || false;
       gridMesh.plane = plane;
 
@@ -399,7 +412,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       var gridMaterial = new BABYLON.GridMaterial(name + 'Material', scene);
       gridMaterial.majorUnitFrequency = options.majorUnitFrequency || 10;
       gridMaterial.minorUnitVisibility = options.minorUnitVisibility || 0.3;
-      gridMaterial.gridRatio = options.gridRatio || 0.01;
+      gridMaterial.gridRatio = gridRatio;
       gridMaterial.backFaceCulling = options.backFaceCulling || false;
       gridMaterial.mainColor = options.mainColor || new BABYLON.Color3(1, 1, 1);
       gridMaterial.lineColor = options.lineColor || new BABYLON.Color3(1.0, 1.0, 1.0);
@@ -425,6 +438,28 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          basicElement.edgesColor = color;
          basicElement.actionManager.actions[0].value = color;
       }
+   }
+
+   function _updateConstraint (constraint, options) {
+      console.log('update constraint');
+      if (options.status) {
+         // var color = ;
+      }
+   }
+
+   function _updateDimension (dimension, options) {
+      if (options.status) {
+         // var colorAxis = dimensionColors[options.status + 'Axis'];
+         // var colorText = dimensionColors[options.status + 'Text'];
+      }
+   }
+
+   function _updateGrid (grid, options) {
+      var sizeAxis = options.sizeAxis || 100;
+      var gridWidth = options.gridWidth || 1;
+
+      var gridRatio = _getGridRatio(sizeAxis, gridWidth);
+      grid.material.gridRatio = gridRatio;
    }
 
    function _updatePoint (point, options) {
