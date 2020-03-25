@@ -3,9 +3,11 @@
 app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFactory) {
    var Services = {
       addDimensionToGrid: _addDimensionToGrid,
+      addPlaneToGrid: _addPlaneToGrid,
       addPointToGrid: _addPointToGrid,
       addRadiusToGrid: _addRadiusToGrid,
       addStraightToGrid: _addStraightToGrid,
+      generatePaths: _generatePaths,
       showGrid: _showGrid,
       start: _start,
       updateBasicElement: _updateBasicElement,
@@ -28,6 +30,13 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       defaultAxis: new BABYLON.Color3.Blue(),
       defaultText: new BABYLON.Color3.Black(),
       mouseOverText: new BABYLON.Color3.Red()
+   };
+   var planeColors = {
+      default: new BABYLON.Color3(0.6, 0.6, 1),
+      fix: new BABYLON.Color3(0, 1, 0),
+      mouseOver: new BABYLON.Color3(0, 0, 1),
+      selected: new BABYLON.Color3(0.3, 0.3, 1),
+      snap: new BABYLON.Color3(0.6, 0.6, 0.6)
    };
    var pointColors = {
       default: new BABYLON.Color3.Gray(),
@@ -239,6 +248,29 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       return dimensionNode;
    }
 
+   function _addPlaneToGrid (grid, mainShape, holes, name, options, scene) {
+      var colorStandard = planeColors[options.status];
+
+      var plane = BABYLON.MeshBuilder.CreatePolygon(
+         'plane',
+         {
+            holes: holes,
+            shape: mainShape,
+            sideOrientation: 2
+         },
+         scene
+      );
+      plane.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+
+      var material = new BABYLON.StandardMaterial('plane', scene);
+      material.diffuseColor = colorStandard;
+      material.emissiveColor = colorStandard;
+
+      plane.material = material;
+
+      return plane;
+   }
+
    function _addPointToGrid (grid, position, name, options, scene) {
       var colorStandard = pointColors[options.status];
       var colorMouseOver = pointColors.mouseOver;
@@ -393,6 +425,38 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       }
 
       return line;
+   }
+
+   function _generatePaths (items) {
+      var proceeded = [];
+      var paths = [];
+
+      for (var k in items) {
+         if (items[k].class === 'basicElement' && proceeded.indexOf(items[k]) === -1) {
+            var newPath = true;
+            var partnerPoint = items[k].end;
+            var partnerElement = partnerPoint.getPartnerElement();
+            var path = [partnerElement];
+
+            proceeded.push(partnerElement);
+
+            while (newPath || proceeded.indexOf(partnerElement) === -1) {
+               newPath = false;
+
+               if (!partnerElement) break;
+               proceeded.push(partnerElement);
+               partnerPoint = partnerElement.getPartnerPoint(partnerPoint);
+               partnerElement = partnerPoint.getPartnerElement(partnerElement);
+
+               if (!partnerElement || proceeded.indexOf(partnerElement) !== -1) break;
+               path.push(partnerElement);
+            }
+
+            paths.push(path);
+         }
+      }
+
+      return paths;
    }
 
    function _showGrid (groupId, node, translation, rotation, plane, name, options, scene) {
