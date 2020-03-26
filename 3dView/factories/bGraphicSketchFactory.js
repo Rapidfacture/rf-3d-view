@@ -30,8 +30,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    };
    var dimensionColors = {
       defaultAxis: new BABYLON.Color3.Blue(),
+      defaultPoint: new BABYLON.Color3.Gray(),
       defaultText: new BABYLON.Color3.Black(),
-      mouseOverText: new BABYLON.Color3.Red()
+      mouseOverText: new BABYLON.Color3.Red(),
+      mouseOverPoint: new BABYLON.Color3.Red()
    };
    var gridProperties = {
       offsetZ: 0
@@ -93,10 +95,13 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          return (x * Math.sin(angle) - y * Math.cos(angle)) / (Math.pow(Math.sin(angle), 2) + Math.pow(Math.cos(angle), 2));
       }
 
-      var dStart, dEnd, eEnd, eStart, vStart, vEnd, dimAngle, dimensionLine, plane, dynamicTexture;
+      var dStart, dEnd, eEnd, eStart, vStart, vEnd, dimAngle, dimensionLine, plane, point, dynamicTexture;
       var axisColor = dimensionColors[options.status + 'Axis'];
+      var scaleFactor = options.scaleFactor || 1;
       var textColorDefault = dimensionColors[options.status + 'Text'];
       var textColorMouseOver = dimensionColors.mouseOverText;
+      var pointColorMouseOver = dimensionColors.mouseOverPoint;
+      var pointColorStandard = dimensionColors[options.status + 'Point'];
 
       if (axis === 'x') {
          dimAngle = 0;
@@ -177,6 +182,12 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
             scene
          );
 
+         point = BABYLON.MeshBuilder.CreateGround(
+            'Dimension_point_' + name,
+            {width: 0.2, height: 0.2, updateable: true},
+            scene
+         );
+
          dynamicTexture = new BABYLON.DynamicTexture(
             'Dimension_label_' + name,
             {width: DTWidth, height: DTHeight},
@@ -224,9 +235,30 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
             !options.replacement,
             existingMeshes[1]
          );
+
+         point = BABYLON.MeshBuilder.CreateGround(
+            'Dimension_point_' + name,
+            {width: 0.2, height: 0.2, updateable: true},
+            scene,
+            !options.replacement,
+            existingMeshes[2]
+         );
       }
 
       dimensionLine.color = axisColor;
+
+      point.position.z = -0.01;
+      point.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+      point.isPickable = (options.isPickable === undefined ? true : options.isPickable);
+      point.renderingGroupId = 1;
+      point.scaling.x = scaleFactor;
+      point.scaling.z = scaleFactor;
+
+      var pointMaterial = new BABYLON.StandardMaterial('point', scene);
+      pointMaterial.diffuseColor = pointColorStandard;
+      pointMaterial.emissiveColor = pointColorStandard;
+
+      point.material = pointMaterial;
 
       // Create plane and set dynamic texture as material
       plane.material = new BABYLON.StandardMaterial('mat', scene);
@@ -243,15 +275,24 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, plane.material, 'diffuseColor', textColorMouseOver));
       plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, plane.material, 'emissiveColor', textColorMouseOver));
 
+      point.actionManager = new BABYLON.ActionManager(scene);
+      point.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, point.material, 'diffuseColor', point.material.diffuseColor));
+      point.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, point.material, 'emissiveColor', point.material.emissiveColor));
+      point.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, point.material, 'diffuseColor', pointColorMouseOver));
+      point.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, point.material, 'emissiveColor', pointColorMouseOver));
+
       if (grid) {
          plane.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
          plane.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+         point.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+         point.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
       }
 
       var dimensionNode = new BABYLON.TransformNode('Dimension_' + name, scene);
 
       dimensionLine.parent = dimensionNode;
       plane.parent = dimensionNode;
+      point.parent = dimensionNode;
 
       dimensionNode.position = position;
       dimensionNode.rotate(new BABYLON.Vector3(0, 0, 1), dimAngle);
