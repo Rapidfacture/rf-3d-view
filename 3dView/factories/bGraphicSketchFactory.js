@@ -9,6 +9,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       addStraightToGrid: _addStraightToGrid,
       generatePaths: _generatePaths,
       showGrid: _showGrid,
+      setPathDirection: _setPathDirection,
       start: _start,
       updateBasicElement: _updateBasicElement,
       updateConstraint: _updateConstraint,
@@ -18,7 +19,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    };
 
    var basicElementProperties = {
-      lineWidth: 10
+      lineWidth: 10,
+      offsetZ: -0.01
    };
    var basicElementColors = {
       default: new BABYLON.Color4(0.3, 0.3, 0.3, 1),
@@ -31,6 +33,9 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       defaultText: new BABYLON.Color3.Black(),
       mouseOverText: new BABYLON.Color3.Red()
    };
+   var gridProperties = {
+      offsetZ: 0
+   };
    var planeColors = {
       default: new BABYLON.Color3(0.6, 0.6, 1),
       fix: new BABYLON.Color3(0, 1, 0),
@@ -38,12 +43,18 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       selected: new BABYLON.Color3(0.3, 0.3, 1),
       snap: new BABYLON.Color3(0.6, 0.6, 0.6)
    };
+   var planeProperties = {
+      offsetZ: 0
+   };
    var pointColors = {
       default: new BABYLON.Color3.Gray(),
       fix: new BABYLON.Color3.Green(),
       mouseOver: new BABYLON.Color3.Red(),
       selected: new BABYLON.Color3.Red(),
       snap: new BABYLON.Color3.Black()
+   };
+   var pointProperties = {
+      offsetZ: -0.02
    };
 
    /* ----------- internal functions --------- */
@@ -254,12 +265,15 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       var plane = BABYLON.MeshBuilder.CreatePolygon(
          'plane',
          {
+            depth: 5,
             holes: holes,
             shape: mainShape,
             sideOrientation: 2
          },
          scene
       );
+
+      plane.position.z += planeProperties.offsetZ;
       plane.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
 
       var material = new BABYLON.StandardMaterial('plane', scene);
@@ -280,9 +294,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          {width: 0.3, height: 0.3, updateable: true},
          scene
       );
+
       // Set point in front for accurate visibility and selection
       // min. 0.01 due to interaction radius of line
-      position.z -= 0.01;
+      item.position.z += pointProperties.offsetZ;
       item.position = position;
       item.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
       item.isPickable = options.isPickable;
@@ -345,6 +360,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          );
       }
 
+      radius.position.z += basicElementProperties.offsetZ;
       radius.enableEdgesRendering();
       radius.edgesWidth = basicElementProperties.lineWidth;
       radius.edgesColor = colorDefault;
@@ -398,6 +414,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          );
       }
 
+      line.position.z += basicElementProperties.offsetZ;
       line.enableEdgesRendering();
       line.edgesWidth = basicElementProperties.lineWidth;
       line.edgesColor = colorDefault;
@@ -459,12 +476,57 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       return paths;
    }
 
+   function _setPathDirection (path, direction) {
+      if (!path) return [];
+
+      // sort items
+      var newPath = [];
+      var length = path.length;
+      var pointPrev = path[0].getSharedPoint(path[length - 1]);
+
+      if (!pointPrev) return [];
+
+      path.forEach(function (element) {
+         newPath.push(element.clone(element.start !== pointPrev));
+         pointPrev = element.getPartnerPoint(pointPrev);
+      });
+
+      // get current direction (cw / ccw)
+      var directionCurrent;
+      var directionValue = 0;
+      var points = newPath.map(function (element) { return element.start; });
+      points.push(newPath[length - 1].end);
+
+      for (var i = 0; i < points.length - 2; i++) {
+         var this_ = points[i].coordinates;
+         var next_ = points[i + 1].coordinates;
+
+         directionValue += (next_.x - this_.x) * (next_.y - this_.y);
+      }
+
+      if (directionValue < 0) directionCurrent = 'ccw';
+      if (directionValue > 0) directionCurrent = 'cw';
+      if (directionValue === 0 && newPath.length === 1) directionCurrent = (newPath[0].clockwise ? 'cw' : 'ccw');
+
+      // revert stack if required
+      if (directionCurrent !== direction) {
+         newPath.reverse();
+         for (var j = 0; j < newPath.length; j++) {
+            newPath[j] = newPath[j].clone(true);
+         }
+      }
+
+      return newPath;
+   }
+
    function _showGrid (groupId, node, translation, rotation, plane, name, options, scene) {
       var sizeAxis = options.sizeAxis || 100;
       var gridWidth = options.gridWidth || 1;
 
       var gridRatio = _getGridRatio(sizeAxis, gridWidth);
       var gridMesh = BABYLON.Mesh.CreateGround(name, 1.0, 0.0, 1, scene);
+
+      gridMesh.position.z = gridProperties.offsetZ;
       gridMesh.translate(translation, 1, BABYLON.Space.LOCAL);
       gridMesh.parent = node;
       gridMesh.scaling.x = sizeAxis;
