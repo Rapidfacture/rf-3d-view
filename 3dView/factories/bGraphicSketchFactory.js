@@ -20,7 +20,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
    var basicElementProperties = {
       lineWidth: 10,
-      offsetZ: -0.01
+      offsetZ: 0
    };
    var basicElementColors = {
       default: new BABYLON.Color4(0.3, 0.3, 0.3, 1),
@@ -273,7 +273,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          scene
       );
 
-      plane.position.z += planeProperties.offsetZ;
+      plane.position.z = planeProperties.offsetZ;
       plane.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
 
       var material = new BABYLON.StandardMaterial('plane', scene);
@@ -297,7 +297,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       // Set point in front for accurate visibility and selection
       // min. 0.01 due to interaction radius of line
-      item.position.z += pointProperties.offsetZ;
+      item.position.z = pointProperties.offsetZ;
       item.position = position;
       item.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
       item.isPickable = options.isPickable;
@@ -360,7 +360,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          );
       }
 
-      radius.position.z += basicElementProperties.offsetZ;
+      radius.position.z = basicElementProperties.offsetZ;
       radius.enableEdgesRendering();
       radius.edgesWidth = basicElementProperties.lineWidth;
       radius.edgesColor = colorDefault;
@@ -414,7 +414,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          );
       }
 
-      line.position.z += basicElementProperties.offsetZ;
+      line.position.z = basicElementProperties.offsetZ;
       line.enableEdgesRendering();
       line.edgesWidth = basicElementProperties.lineWidth;
       line.edgesColor = colorDefault;
