@@ -286,6 +286,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    }
 
    function _addPointToGrid (grid, position, name, options, scene) {
+      var scaleFactor = options.scaleFactor || 1;
       var colorStandard = pointColors[options.status];
       var colorMouseOver = pointColors.mouseOver;
 
@@ -303,6 +304,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       item.isPickable = options.isPickable;
       item.isVisible = options.isVisible || true;
       item.renderingGroupId = 1;
+      item.scaling.x = scaleFactor;
+      item.scaling.z = scaleFactor;
 
       var material = new BABYLON.StandardMaterial('point', scene);
       material.diffuseColor = colorStandard;
@@ -337,6 +340,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    function _addRadiusToGrid (grid, start, end, center, clockwise, name, options, scene) {
       var coordinates = bGraphicFactory.getRadiusPoints(start, end, center, clockwise, {nodes: 72, addStart: true});
       var radius;
+      var scaleFactor = options.scaleFactor || 1;
 
       var colorDefault = basicElementColors[options.status];
       var colorMouseOver = basicElementColors.mouseOver;
@@ -362,7 +366,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       radius.position.z = basicElementProperties.offsetZ;
       radius.enableEdgesRendering();
-      radius.edgesWidth = basicElementProperties.lineWidth;
+      radius.edgesWidth = basicElementProperties.lineWidth * scaleFactor;
       radius.edgesColor = colorDefault;
       radius.isPickable = (options.isPickable === undefined ? true : options.isPickable);
 
@@ -392,6 +396,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
    function _addStraightToGrid (grid, start, end, name, options, scene) {
       var line;
+      var scaleFactor = options.scaleFactor || 1;
 
       var colorDefault = basicElementColors[options.status];
       var colorMouseOver = basicElementColors.mouseOver;
@@ -416,7 +421,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       line.position.z = basicElementProperties.offsetZ;
       line.enableEdgesRendering();
-      line.edgesWidth = basicElementProperties.lineWidth;
+      line.edgesWidth = basicElementProperties.lineWidth * scaleFactor;
       line.edgesColor = colorDefault;
       line.isPickable = (options.isPickable === undefined ? true : options.isPickable);
 
