@@ -871,6 +871,7 @@ app.factory('bGraphicFactory', [function () {
 
       var size = options.size || 5;
       var axis = options.axis || 'xyz';
+      var result = {};
 
       if (axis.includes('x')) {
          var axisX = BABYLON.Mesh.CreateLines(
@@ -885,15 +886,20 @@ app.factory('bGraphicFactory', [function () {
             scene
          );
          axisX.color = new BABYLON.Color3(1, 0, 0);
+         axisX.isPickable = (options.isPickable === undefined ? true : options.isPickable);
          axisX.renderingGroupId = 3;
          axisX.parent = node;
          axisX.translate(translation, 1, BABYLON.Space.LOCAL);
 
          var xChar = makeTextPlane('X', 'red');
+         xChar.isPickable = false;
          xChar.position = new BABYLON.Vector3(0.9 * size, -0.05 * size, 0);
          xChar.renderingGroupId = 3;
          xChar.parent = node;
          xChar.translate(translation, 1, BABYLON.Space.LOCAL);
+
+         result.xAxis = axisX;
+         result.xChar = xChar;
       }
 
       if (axis.includes('y')) {
@@ -909,15 +915,20 @@ app.factory('bGraphicFactory', [function () {
             scene
          );
          axisY.color = new BABYLON.Color3(0, 1, 0);
+         axisY.isPickable = (options.isPickable === undefined ? true : options.isPickable);
          axisY.renderingGroupId = 3;
          axisY.parent = node;
          axisY.translate(translation, 1, BABYLON.Space.LOCAL);
 
          var yChar = makeTextPlane('Y', 'green');
+         yChar.isPickable = false;
          yChar.position = new BABYLON.Vector3(0, 0.9 * size, -0.05 * size);
          yChar.renderingGroupId = 3;
          yChar.parent = node;
          yChar.translate(translation, 1, BABYLON.Space.LOCAL);
+
+         result.yAxis = axisY;
+         result.yChar = yChar;
       }
 
       if (axis.includes('z')) {
@@ -933,16 +944,23 @@ app.factory('bGraphicFactory', [function () {
             scene
          );
          axisZ.color = new BABYLON.Color3(0, 0, 1);
+         axisZ.isPickable = (options.isPickable === undefined ? true : options.isPickable);
          axisZ.renderingGroupId = 3;
          axisZ.parent = node;
          axisZ.translate(translation, 1, BABYLON.Space.LOCAL);
 
          var zChar = makeTextPlane('Z', 'blue');
+         zChar.isPickable = false;
          zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
          zChar.renderingGroupId = 3;
          zChar.parent = node;
          zChar.translate(translation, 1, BABYLON.Space.LOCAL);
+
+         result.zAxis = axisZ;
+         result.zChar = zChar;
       }
+
+      return result;
    }
 
    return Services;
