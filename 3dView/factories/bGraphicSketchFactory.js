@@ -687,8 +687,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       var sizeAxis = options.sizeAxis || 100;
       var gridWidth = options.gridWidth || 1;
 
-      var gridRatio = _getGridRatio(sizeAxis, gridWidth);
-      grid.material.gridRatio = gridRatio;
+      grid.grid.material.gridRatio = _getGridRatio(sizeAxis, gridWidth);
    }
 
    function _updatePoint (point, options) {
