@@ -376,7 +376,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       item.position = position;
       item.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
       item.isPickable = options.isPickable;
-      item.isVisible = options.isVisible || true;
+      item.isVisible = (options.isVisible === undefined ? true : options.isVisible);
       item.renderingGroupId = 1;
       item.scaling.x = scaleFactor;
       item.scaling.z = scaleFactor;
