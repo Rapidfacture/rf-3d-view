@@ -95,7 +95,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          return (x * Math.sin(angle) - y * Math.cos(angle)) / (Math.pow(Math.sin(angle), 2) + Math.pow(Math.cos(angle), 2));
       }
 
-      var dStart, dEnd, eEnd, eStart, vStart, vEnd, dimAngle, dimensionLine, plane, point, dynamicTexture;
+      var dStart, dEnd, eEnd, eStart, vStart, vEnd, dimAngle, dimensionLine, plane, point, dynamicTexture, dimensionNode;
       var axisColor = dimensionColors[options.status + 'Axis'];
       var scaleFactor = options.scaleFactor || 1;
       var textColorDefault = dimensionColors[options.status + 'Text'];
@@ -123,35 +123,39 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       eStart = eLength(dimAngle, vStart.x, vStart.y, dStart);
       eEnd = eLength(dimAngle, vEnd.x, vEnd.y, dEnd);
 
-      var dimValue = dimension.value;
-      var tolValue = dimension.tolerance.value || '';
-      var tolType = dimension.tolerance.type || '';
-
-      // Set height for plane
-      var planeHeight = 1;
-      var fontSize = 72;
-
-      // Set height for dynamic texture
-      var DTHeight = 1.2 * fontSize; // or set as wished
-
-      // Calcultae ratio
-      var ratio = planeHeight / DTHeight;
-      // Set font
-      var font = 'bold ' + fontSize + 'px Arial';
-      var text = '' + dimValue + tolType + tolValue;
-      var temp = new BABYLON.DynamicTexture('DynamicTexture', 64, scene);
-      var tmpctx = temp.getContext();
-      tmpctx.font = font;
-      var DTWidth = tmpctx.measureText(text).width + 8;
-
-      // Calculate width the plane has to be
-      var planeWidth = DTWidth * ratio;
-
       if (options.registerActions) {
-         if (options.replacement) options.replacement.dispose();
+         var dimValue = dimension.value;
+         var tolValue = dimension.tolerance.value || '';
+         var tolType = dimension.tolerance.type || '';
+
+         // Set height for plane
+         var planeHeight = 1;
+         var fontSize = 72;
+
+         // Set height for dynamic texture
+         var DTHeight = 1.2 * fontSize; // or set as wished
+
+         // Calcultae ratio
+         var ratio = planeHeight / DTHeight;
+         // Set font
+         var font = 'bold ' + fontSize + 'px Arial';
+         var text = '' + dimValue + tolType + tolValue;
+         var temp = new BABYLON.DynamicTexture('DynamicTexture', 64, scene);
+         var tmpctx = temp.getContext();
+         temp.dispose();
+         tmpctx.font = font;
+         var DTWidth = tmpctx.measureText(text).width + 8;
+
+         // Calculate width the plane has to be
+         var planeWidth = DTWidth * ratio;
+         var subMeshes = [];
+
+         if (options.replacement) {
+            subMeshes = options.replacement.getChildMeshes();
+         }
 
          dimensionLine = BABYLON.Mesh.CreateLines(
-            'Dimension_arrow_' + name,
+            (subMeshes[0] ? subMeshes[0].name : 'Dimension_arrow_' + name),
             [
                // Line start
                new BABYLON.Vector3(dStart, -eStart + Math.sign(eStart) * 0.3, 0),
@@ -173,19 +177,22 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
                new BABYLON.Vector3(dEnd, Math.sign(eEnd) * 0.1, 0),
                new BABYLON.Vector3(dEnd, -eEnd + Math.sign(eEnd) * 0.3, 0)
             ],
-            scene
+            scene,
+            true
          );
 
          plane = BABYLON.MeshBuilder.CreatePlane(
-            'Dimension_plane_' + name,
+            (subMeshes[1] ? subMeshes[1].name : 'Dimension_plane_' + name),
             {width: planeWidth, height: planeHeight},
-            scene
+            scene,
+            true
          );
 
          point = BABYLON.MeshBuilder.CreateGround(
-            'Dimension_point_' + name,
+            (subMeshes[2] ? subMeshes[2].name : 'Dimension_point_' + name),
             {width: 0.2, height: 0.2, updateable: true},
-            scene
+            scene,
+            true
          );
 
          dynamicTexture = new BABYLON.DynamicTexture(
@@ -193,15 +200,94 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
             {width: DTWidth, height: DTHeight},
             scene
          );
+
+         subMeshes.forEach(function (subMesh) {
+            subMesh.dispose();
+         });
+
          // Create dynamic texture and write the text
          dynamicTexture.hasAlpha = true;
          dynamicTexture.drawText(text, null, null, font, 'white', 'transparent', true);
 
+         dimensionLine.color = axisColor;
+
+         point.position.z = -0.01;
+         point.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+         point.isPickable = (options.isPickable === undefined ? true : options.isPickable);
+         point.renderingGroupId = 1;
+         point.scaling.x = scaleFactor;
+         point.scaling.z = scaleFactor;
+
+         var pointMaterial = new BABYLON.StandardMaterial('point', scene);
+         pointMaterial.diffuseColor = pointColorStandard;
+         pointMaterial.emissiveColor = pointColorStandard;
+
+         point.material = pointMaterial;
+
+         // Create plane and set dynamic texture as material
+         plane.material = new BABYLON.StandardMaterial('mat', scene);
+         plane.material.diffuseColor = textColorDefault;
+         plane.material.emissiveColor = textColorDefault;
+         if (dynamicTexture) plane.material.diffuseTexture = dynamicTexture;
+         plane.material.backFaceCulling = false;
+
+         plane.position = new BABYLON.Vector3(0, 0.6, 0);
+
+         plane.actionManager = new BABYLON.ActionManager(scene);
+         plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, plane.material, 'diffuseColor', plane.material.diffuseColor));
+         plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, plane.material, 'emissiveColor', plane.material.emissiveColor));
+         plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, plane.material, 'diffuseColor', textColorMouseOver));
+         plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, plane.material, 'emissiveColor', textColorMouseOver));
+
+         point.actionManager = new BABYLON.ActionManager(scene);
+         point.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, point.material, 'diffuseColor', point.material.diffuseColor));
+         point.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, point.material, 'emissiveColor', point.material.emissiveColor));
+         point.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, point.material, 'diffuseColor', pointColorMouseOver));
+         point.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, point.material, 'emissiveColor', pointColorMouseOver));
+
+         if (grid) {
+            plane.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
+            plane.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+            point.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+            point.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+         }
+
+         if (options.replacement) {
+            dimensionNode = options.replacement;
+
+            dimensionNode.rotationQuaternion.x = 0;
+            dimensionNode.rotationQuaternion.y = 0;
+            dimensionNode.rotationQuaternion.z = 0;
+            dimensionNode.rotationQuaternion.w = 1;
+
+         } else {
+            dimensionNode = new BABYLON.TransformNode('Dimension_' + name, scene);
+         }
+
+         dimensionLine.parent = dimensionNode;
+         plane.parent = dimensionNode;
+         point.parent = dimensionNode;
+
+         dimensionNode.position = position;
+         dimensionNode.rotate(new BABYLON.Vector3(0, 0, 1), dimAngle);
+
+         if (options.dragAndDrop) {
+            dimensionNode.addBehavior(
+               _getDragAndDropBehavior(
+                  options.dragStartFunction,
+                  options.dragFunction,
+                  options.dragEndFunction
+               )
+            );
+         }
+
+         return dimensionNode;
+
       } else {
          var existingMeshes = options.replacement.getChildMeshes();
 
-         dimensionLine = BABYLON.Mesh.CreateLines(
-            'Dimension_arrow_' + name,
+         BABYLON.Mesh.CreateLines(
+            existingMeshes[0].name,
             [
                // Line start
                new BABYLON.Vector3(dStart, -eStart + Math.sign(eStart) * 0.3, 0),
@@ -228,76 +314,23 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
             existingMeshes[0]
          );
 
-         plane = BABYLON.MeshBuilder.CreatePlane(
-            'Dimension_plane_' + name,
-            {width: planeWidth, height: planeHeight},
-            scene,
-            !options.replacement,
-            existingMeshes[1]
-         );
-
-         point = BABYLON.MeshBuilder.CreateGround(
-            'Dimension_point_' + name,
+         BABYLON.MeshBuilder.CreateGround(
+            existingMeshes[2].name,
             {width: 0.2, height: 0.2, updateable: true},
             scene,
             !options.replacement,
             existingMeshes[2]
          );
+
+         options.replacement.rotationQuaternion.x = 0;
+         options.replacement.rotationQuaternion.y = 0;
+         options.replacement.rotationQuaternion.z = 0;
+         options.replacement.rotationQuaternion.w = 1;
+         options.replacement.position = position;
+         options.replacement.rotate(new BABYLON.Vector3(0, 0, 1), dimAngle);
+
+         return options.replacement;
       }
-
-      dimensionLine.color = axisColor;
-
-      point.position.z = -0.01;
-      point.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
-      point.isPickable = (options.isPickable === undefined ? true : options.isPickable);
-      point.renderingGroupId = 1;
-      point.scaling.x = scaleFactor;
-      point.scaling.z = scaleFactor;
-
-      var pointMaterial = new BABYLON.StandardMaterial('point', scene);
-      pointMaterial.diffuseColor = pointColorStandard;
-      pointMaterial.emissiveColor = pointColorStandard;
-
-      point.material = pointMaterial;
-
-      // Create plane and set dynamic texture as material
-      plane.material = new BABYLON.StandardMaterial('mat', scene);
-      plane.material.diffuseColor = textColorDefault;
-      plane.material.emissiveColor = textColorDefault;
-      if (dynamicTexture) plane.material.diffuseTexture = dynamicTexture;
-      plane.material.backFaceCulling = false;
-
-      plane.translate(new BABYLON.Vector3(0, 1, 0), 0.6, BABYLON.Space.LOCAL);
-
-      plane.actionManager = new BABYLON.ActionManager(scene);
-      plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, plane.material, 'diffuseColor', plane.material.diffuseColor));
-      plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, plane.material, 'emissiveColor', plane.material.emissiveColor));
-      plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, plane.material, 'diffuseColor', textColorMouseOver));
-      plane.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, plane.material, 'emissiveColor', textColorMouseOver));
-
-      point.actionManager = new BABYLON.ActionManager(scene);
-      point.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, point.material, 'diffuseColor', point.material.diffuseColor));
-      point.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, point.material, 'emissiveColor', point.material.emissiveColor));
-      point.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, point.material, 'diffuseColor', pointColorMouseOver));
-      point.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, point.material, 'emissiveColor', pointColorMouseOver));
-
-      if (grid) {
-         plane.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
-         plane.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
-         point.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
-         point.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
-      }
-
-      var dimensionNode = new BABYLON.TransformNode('Dimension_' + name, scene);
-
-      dimensionLine.parent = dimensionNode;
-      plane.parent = dimensionNode;
-      point.parent = dimensionNode;
-
-      dimensionNode.position = position;
-      dimensionNode.rotate(new BABYLON.Vector3(0, 0, 1), dimAngle);
-
-      return dimensionNode;
    }
 
    function _addPlaneToGrid (grid, mainShape, holes, name, options, scene) {
@@ -619,16 +652,34 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    }
 
    function _updateConstraint (constraint, options) {
-      console.log('update constraint');
-      if (options.status) {
-         // var color = ;
+      if (options.status) { }
+
+      if (options.textIsPickable !== undefined) {
+         constraint.getChildren()[1].isPickable = options.textIsPickable;
       }
    }
 
    function _updateDimension (dimension, options) {
+      if (!dimension) return;
+
+      var elements = dimension.getChildren();
+
       if (options.status) {
-         // var colorAxis = dimensionColors[options.status + 'Axis'];
-         // var colorText = dimensionColors[options.status + 'Text'];
+         var colorAxis = dimensionColors[options.status + 'Axis'];
+         var colorText = dimensionColors[options.status + 'Text'];
+         var colorPoint = dimensionColors[options.status + 'Point'];
+
+         elements[0].color = colorAxis;
+
+         elements[1].material.diffuseColor = colorText;
+         elements[1].material.emissiveColor = colorText;
+
+         elements[2].material.diffuseColor = colorPoint;
+         elements[2].material.emissiveColor = colorPoint;
+      }
+
+      if (options.textIsPickable !== undefined) {
+         elements[1].isPickable = options.textIsPickable;
       }
    }
 
