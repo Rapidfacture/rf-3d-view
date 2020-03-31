@@ -307,6 +307,8 @@ app.factory('bGraphicFactory', [function () {
    }
 
    function _getRadiusPoints (start, end, center, clockwise, options) {
+      options = options || {};
+
       var coordinates = [];
       var startAngle, endAngle, steps, dAngle, radius;
 
