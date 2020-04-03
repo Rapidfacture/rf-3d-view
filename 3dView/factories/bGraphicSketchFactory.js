@@ -15,6 +15,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       updateConstraint: _updateConstraint,
       updateDimension: _updateDimension,
       updateGrid: _updateGrid,
+      updatePlane: _updatePlane,
       updatePoint: _updatePoint
    };
 
@@ -372,7 +373,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       var plane = BABYLON.MeshBuilder.CreatePolygon(
          'plane',
          {
-            depth: 5,
+            depth: 1,
             holes: holes,
             shape: mainShape,
             sideOrientation: 2
@@ -382,6 +383,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       plane.position.z = planeProperties.offsetZ;
       plane.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+      plane.scaling.y = options.depth;
 
       var material = new BABYLON.StandardMaterial('plane', scene);
       material.diffuseColor = colorStandard;
@@ -749,6 +751,12 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       var gridWidth = options.gridWidth || 1;
 
       grid.grid.material.gridRatio = _getGridRatio(sizeAxis, gridWidth);
+   }
+
+   function _updatePlane (plane, options) {
+      if (options.depth) {
+         plane.scaling.y = options.depth;
+      }
    }
 
    function _updatePoint (point, options) {
