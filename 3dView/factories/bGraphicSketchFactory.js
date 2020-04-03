@@ -2,6 +2,7 @@
 
 app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFactory) {
    var Services = {
+      addConstraintToGrid: _addConstraintToGrid,
       addDimensionToGrid: _addDimensionToGrid,
       addPlaneToGrid: _addPlaneToGrid,
       addPointToGrid: _addPointToGrid,
@@ -28,6 +29,11 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       fix: new BABYLON.Color4(0, 1, 0, 1),
       mouseOver: new BABYLON.Color4(1, 0, 0, 1),
       selected: new BABYLON.Color4(1, 0, 0, 1)
+   };
+   var constraintColors = {
+      default: new BABYLON.Color3.Gray(),
+      mouseOver: new BABYLON.Color3.Red(),
+      selected: new BABYLON.Color3.Red()
    };
    var dimensionColors = {
       defaultAxis: new BABYLON.Color3.Blue(),
@@ -119,6 +125,49 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    }
 
    /* ----------- external functions --------- */
+   function _addConstraintToGrid (grid, type, texture, position, name, options, scene) {
+      var scaleFactor = options.scaleFactor || 1;
+      var colorStandard = constraintColors[options.status];
+      var colorMouseOver = constraintColors.mouseOver;
+
+      var constraint = BABYLON.MeshBuilder.CreateGround(
+         'Constraint_' + name,
+         {width: 1, height: 1, updateable: true},
+         scene
+      );
+
+      // Set point in front for accurate visibility and selection
+      // min. 0.01 due to interaction radius of line
+      constraint.position = position;
+      constraint.position.z = pointProperties.offsetZ;
+      constraint.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+      constraint.isPickable = options.isPickable;
+      constraint.isVisible = (options.isVisible === undefined ? true : options.isVisible);
+      constraint.renderingGroupId = 1;
+      constraint.scaling.x = scaleFactor;
+      constraint.scaling.z = scaleFactor;
+
+      var material = new BABYLON.StandardMaterial('Constraint_' + type + '_' + name, scene);
+      material.diffuseColor = colorStandard;
+      material.emissiveColor = colorStandard;
+      material.diffuseTexture = texture;
+
+      constraint.material = material;
+
+      constraint.actionManager = new BABYLON.ActionManager(scene);
+      constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, constraint.material, 'diffuseColor', constraint.material.diffuseColor));
+      constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, constraint.material, 'emissiveColor', constraint.material.emissiveColor));
+      constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, constraint.material, 'diffuseColor', colorMouseOver));
+      constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, constraint.material, 'emissiveColor', colorMouseOver));
+
+      if (grid) {
+         constraint.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
+         constraint.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+      }
+
+      return constraint;
+   }
+
    function _addDimensionToGrid (grid, axis, dimension, start, end, position, name, options, scene) {
       function dLength (angle, x, y) {
          return (y * Math.sin(angle) + x * Math.cos(angle)) / (Math.pow(Math.sin(angle), 2) + Math.pow(Math.cos(angle), 2));
@@ -407,8 +456,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       // Set point in front for accurate visibility and selection
       // min. 0.01 due to interaction radius of line
-      item.position.z = pointProperties.offsetZ;
       item.position = position;
+      item.position.z = pointProperties.offsetZ;
       item.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
       item.isPickable = options.isPickable;
       item.isVisible = (options.isVisible === undefined ? true : options.isVisible);
@@ -667,9 +716,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    }
 
    function _start (settings) {
-      if (settings.colorsPoint) pointColors = settings.colorsPoint;
       if (settings.colorsBasicElement) basicElementColors = settings.colorsBasicElement;
+      if (settings.colorsConstraint) constraintColors = settings.colorsConstraint;
       if (settings.colorsDimension) dimensionColors = settings.colorsDimension;
+      if (settings.colorsPoint) pointColors = settings.colorsPoint;
       // if (settings.grid) grid = settings.grid;
    }
 
@@ -687,10 +737,19 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    }
 
    function _updateConstraint (constraint, options) {
-      if (options.status) { }
+      if (options.status) {
+         var color = constraintColors[options.status];
 
-      if (options.textIsPickable !== undefined) {
-         constraint.getChildren()[1].isPickable = options.textIsPickable;
+         constraint.material.diffuseColor = color;
+         constraint.material.emissiveColor = color;
+
+         constraint.actionManager.actions[0].value = color;
+         constraint.actionManager.actions[1].value = color;
+      }
+
+      if (options.scaling) {
+         constraint.scaling.x = options.scaling;
+         constraint.scaling.z = options.scaling;
       }
    }
 
