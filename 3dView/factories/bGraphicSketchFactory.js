@@ -35,6 +35,9 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       mouseOver: new BABYLON.Color3.Red(),
       selected: new BABYLON.Color3.Red()
    };
+   var dimensionProperties = {
+      valRound: 1000
+   };
    var dimensionColors = {
       defaultAxis: new BABYLON.Color3.Blue(),
       defaultPoint: new BABYLON.Color3.Gray(),
@@ -69,6 +72,20 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    /* ----------- internal functions --------- */
    function _getGridRatio (groundSize, gridSize) {
       return gridSize / groundSize;
+   }
+
+   function _getText (dimension) {
+      dimension = dimension || {};
+      dimension.value = dimension.value || 0;
+      dimension.tolerance = dimension.tolerance || {};
+
+      if (dimension.value === 0) return '';
+
+      var dimValue = Math.round(dimension.value * dimensionProperties.valRound) / dimensionProperties.valRound;
+      var tolValue = dimension.tolerance.value || '';
+      var tolType = dimension.tolerance.type || '';
+
+      return '' + dimValue + tolType + tolValue;
    }
 
    function _getTextPlaneProperties (text) {
@@ -206,10 +223,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       eEnd = eLength(dimAngle, vEnd.x, vEnd.y, dEnd);
 
       if (options.registerActions) {
-         var dimValue = dimension.value;
-         var tolValue = dimension.tolerance.value || '';
-         var tolType = dimension.tolerance.type || '';
-         var text = _getTextPlaneProperties('' + dimValue + tolType + tolValue);
+         var text = _getTextPlaneProperties(_getText(dimension));
 
          var subMeshes = [];
 
@@ -783,10 +797,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       }
 
       if (options.label) {
-         var dimValue = options.label.value;
-         var tolValue = options.label.tolerance.value || '';
-         var tolType = options.label.tolerance.type || '';
-         var text = _getTextPlaneProperties('' + dimValue + tolType + tolValue);
+         var text = _getTextPlaneProperties(_getText(options.label));
 
          var texture = new BABYLON.DynamicTexture(
             elements[1].material.diffuseTexture.name,
