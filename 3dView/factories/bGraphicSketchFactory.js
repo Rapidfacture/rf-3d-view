@@ -3,7 +3,9 @@
 app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFactory) {
    var Services = {
       addConstraintToGrid: _addConstraintToGrid,
+      addDimensionDiameterToGrid: _addDimensionDiameterToGrid,
       addDimensionToGrid: _addDimensionToGrid,
+      addDimensionRadiusToGrid: _addDimensionRadiusToGrid,
       addPlaneToGrid: _addPlaneToGrid,
       addPointToGrid: _addPointToGrid,
       addRadiusToGrid: _addRadiusToGrid,
@@ -81,11 +83,12 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       if (dimension.value === 0) return '';
 
+      var diameter = (dimension.diameter ? '⌀' : '');
       var dimValue = Math.round(dimension.value * dimensionProperties.valRound) / dimensionProperties.valRound;
       var tolValue = dimension.tolerance.value || '';
       var tolType = dimension.tolerance.type || '';
 
-      return '' + dimValue + tolType + tolValue;
+      return '' + diameter + dimValue + tolType + tolValue;
    }
 
    function _getTextPlaneProperties (text) {
@@ -141,86 +144,15 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       return behavior;
    }
 
-   /* ----------- external functions --------- */
-   function _addConstraintToGrid (grid, type, texture, position, name, options, scene) {
-      var scaleFactor = options.scaleFactor || 1;
-      var colorStandard = constraintColors[options.status];
-      var colorMouseOver = constraintColors.mouseOver;
+   function _uiDimension (grid, dimension, dimensionLinePoints, position, dimAngle, namePrefix, name, options, scene) {
+      var dimensionLine, plane, point, dynamicTexture, dimensionNode;
 
-      var constraint = BABYLON.MeshBuilder.CreateGround(
-         'Constraint_' + name,
-         {width: 1, height: 1, updateable: true},
-         scene
-      );
-
-      // Set point in front for accurate visibility and selection
-      // min. 0.01 due to interaction radius of line
-      constraint.position = position;
-      constraint.position.z = pointProperties.offsetZ;
-      constraint.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
-      constraint.isPickable = options.isPickable;
-      constraint.isVisible = (options.isVisible === undefined ? true : options.isVisible);
-      constraint.renderingGroupId = 1;
-      constraint.scaling.x = scaleFactor;
-      constraint.scaling.z = scaleFactor;
-
-      var material = new BABYLON.StandardMaterial('Constraint_' + type + '_' + name, scene);
-      material.diffuseColor = colorStandard;
-      material.emissiveColor = colorStandard;
-      material.diffuseTexture = texture;
-
-      constraint.material = material;
-
-      constraint.actionManager = new BABYLON.ActionManager(scene);
-      constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, constraint.material, 'diffuseColor', constraint.material.diffuseColor));
-      constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, constraint.material, 'emissiveColor', constraint.material.emissiveColor));
-      constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, constraint.material, 'diffuseColor', colorMouseOver));
-      constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, constraint.material, 'emissiveColor', colorMouseOver));
-
-      if (grid) {
-         constraint.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
-         constraint.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
-      }
-
-      return constraint;
-   }
-
-   function _addDimensionToGrid (grid, axis, dimension, start, end, position, name, options, scene) {
-      function dLength (angle, x, y) {
-         return (y * Math.sin(angle) + x * Math.cos(angle)) / (Math.pow(Math.sin(angle), 2) + Math.pow(Math.cos(angle), 2));
-      }
-
-      function eLength (angle, x, y, d) {
-         return (x * Math.sin(angle) - y * Math.cos(angle)) / (Math.pow(Math.sin(angle), 2) + Math.pow(Math.cos(angle), 2));
-      }
-
-      var dStart, dEnd, eEnd, eStart, vStart, vEnd, dimAngle, dimensionLine, plane, point, dynamicTexture, dimensionNode;
       var axisColor = dimensionColors[options.status + 'Axis'];
       var scaleFactor = options.scaleFactor || 1;
       var textColorStandard = dimensionColors[options.status + 'Text'];
       var textColorMouseOver = dimensionColors.mouseOverText;
       var pointColorMouseOver = dimensionColors.mouseOverPoint;
       var pointColorStandard = dimensionColors[options.status + 'Point'];
-
-      if (axis === 'x') {
-         dimAngle = 0;
-
-      } else if (axis === 'y') {
-         dimAngle = Math.PI / 2;
-
-      } else if (axis === 'radius') {
-         var dimDirection = end.subtract(start).normalizeToNew();
-         dimAngle = Math.atan2(dimDirection.y, dimDirection.x);
-      }
-
-      vStart = start.subtract(position);
-      vEnd = end.subtract(position);
-
-      dStart = dLength(dimAngle, vStart.x, vStart.y);
-      dEnd = dLength(dimAngle, vEnd.x, vEnd.y);
-
-      eStart = eLength(dimAngle, vStart.x, vStart.y, dStart);
-      eEnd = eLength(dimAngle, vEnd.x, vEnd.y, dEnd);
 
       if (options.registerActions) {
          var text = _getTextPlaneProperties(_getText(dimension));
@@ -232,34 +164,14 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          }
 
          dimensionLine = BABYLON.Mesh.CreateLines(
-            (subMeshes[0] ? subMeshes[0].name : 'Dimension_arrow_' + name),
-            [
-               // Line start
-               new BABYLON.Vector3(dStart, -eStart + Math.sign(eStart) * 0.3, 0),
-               new BABYLON.Vector3(dStart, Math.sign(eStart) * 0.1, 0),
-               // Arrow start
-               new BABYLON.Vector3(dStart, 0, 0),
-               new BABYLON.Vector3(dStart + 0.2, 0.1, 0),
-               new BABYLON.Vector3(dStart, 0, 0),
-               new BABYLON.Vector3(dStart + 0.2, -0.1, 0),
-               new BABYLON.Vector3(dStart, 0, 0),
-               // DimensionLine
-               new BABYLON.Vector3(dEnd, 0, 0),
-               // Arrow end
-               new BABYLON.Vector3(dEnd - 0.2, 0.1, 0),
-               new BABYLON.Vector3(dEnd, 0, 0),
-               new BABYLON.Vector3(dEnd - 0.2, -0.1, 0),
-               new BABYLON.Vector3(dEnd, 0, 0),
-               // Line end
-               new BABYLON.Vector3(dEnd, Math.sign(eEnd) * 0.1, 0),
-               new BABYLON.Vector3(dEnd, -eEnd + Math.sign(eEnd) * 0.3, 0)
-            ],
+            (subMeshes[0] ? subMeshes[0].name : namePrefix + 'arrow_' + name),
+            dimensionLinePoints,
             scene,
             true
          );
 
          plane = BABYLON.MeshBuilder.CreateGround(
-            (subMeshes[1] ? subMeshes[1].name : 'Dimension_plane_' + name),
+            (subMeshes[1] ? subMeshes[1].name : namePrefix + 'plane_' + name),
             {width: 1, height: 1, updateable: true},
             scene,
             true
@@ -272,14 +184,14 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          plane.scaling.z = text.height;
 
          point = BABYLON.MeshBuilder.CreateGround(
-            (subMeshes[2] ? subMeshes[2].name : 'Dimension_point_' + name),
+            (subMeshes[2] ? subMeshes[2].name : namePrefix + 'point_' + name),
             {width: 0.2, height: 0.2, updateable: true},
             scene,
             true
          );
 
          dynamicTexture = new BABYLON.DynamicTexture(
-            'Dimension_label_' + name,
+            namePrefix + 'label_' + name,
             {width: text.dtWidth, height: text.dtHeight},
             scene
          );
@@ -358,7 +270,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
             dimensionNode.rotationQuaternion.w = 1;
 
          } else {
-            dimensionNode = new BABYLON.TransformNode('Dimension_' + name, scene);
+            dimensionNode = new BABYLON.TransformNode(namePrefix + name, scene);
          }
 
          dimensionLine.parent = dimensionNode;
@@ -385,27 +297,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
          BABYLON.Mesh.CreateLines(
             existingMeshes[0].name,
-            [
-               // Line start
-               new BABYLON.Vector3(dStart, -eStart + Math.sign(eStart) * 0.3, 0),
-               new BABYLON.Vector3(dStart, Math.sign(eStart) * 0.1, 0),
-               // Arrow start
-               new BABYLON.Vector3(dStart, 0, 0),
-               new BABYLON.Vector3(dStart + 0.2, 0.1, 0),
-               new BABYLON.Vector3(dStart, 0, 0),
-               new BABYLON.Vector3(dStart + 0.2, -0.1, 0),
-               new BABYLON.Vector3(dStart, 0, 0),
-               // DimensionLine
-               new BABYLON.Vector3(dEnd, 0, 0),
-               // Arrow end
-               new BABYLON.Vector3(dEnd - 0.2, 0.1, 0),
-               new BABYLON.Vector3(dEnd, 0, 0),
-               new BABYLON.Vector3(dEnd - 0.2, -0.1, 0),
-               new BABYLON.Vector3(dEnd, 0, 0),
-               // Line end
-               new BABYLON.Vector3(dEnd, Math.sign(eEnd) * 0.1, 0),
-               new BABYLON.Vector3(dEnd, -eEnd + Math.sign(eEnd) * 0.3, 0)
-            ],
+            dimensionLinePoints,
             scene,
             !options.replacement,
             existingMeshes[0]
@@ -428,6 +320,177 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
          return options.replacement;
       }
+   }
+
+   /* ----------- external functions --------- */
+   function _addConstraintToGrid (grid, type, texture, position, name, options, scene) {
+      var scaleFactor = options.scaleFactor || 1;
+      var colorStandard = constraintColors[options.status];
+      var colorMouseOver = constraintColors.mouseOver;
+
+      var constraint = BABYLON.MeshBuilder.CreateGround(
+         'Constraint_' + name,
+         {width: 1, height: 1, updateable: true},
+         scene
+      );
+
+      // Set point in front for accurate visibility and selection
+      // min. 0.01 due to interaction radius of line
+      constraint.position = position;
+      constraint.position.z = pointProperties.offsetZ;
+      constraint.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+      constraint.isPickable = options.isPickable;
+      constraint.isVisible = (options.isVisible === undefined ? true : options.isVisible);
+      constraint.renderingGroupId = 1;
+      constraint.scaling.x = scaleFactor;
+      constraint.scaling.z = scaleFactor;
+
+      var material = new BABYLON.StandardMaterial('Constraint_' + type + '_' + name, scene);
+      material.diffuseColor = colorStandard;
+      material.emissiveColor = colorStandard;
+      material.diffuseTexture = texture;
+
+      constraint.material = material;
+
+      constraint.actionManager = new BABYLON.ActionManager(scene);
+      constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, constraint.material, 'diffuseColor', constraint.material.diffuseColor));
+      constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, constraint.material, 'emissiveColor', constraint.material.emissiveColor));
+      constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, constraint.material, 'diffuseColor', colorMouseOver));
+      constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, constraint.material, 'emissiveColor', colorMouseOver));
+
+      if (grid) {
+         constraint.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
+         constraint.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+      }
+
+      return constraint;
+   }
+
+   function _addDimensionDiameterToGrid (grid, dimension, center, end, position, name, options, scene) {
+      var dimDirection = position.subtract(center).normalizeToNew();
+      var dimAngle = Math.atan2(dimDirection.y, dimDirection.x);
+
+      var radius = end.subtract(center).length();
+      var radiusPosition = center.subtract(position).length();
+
+      var dimensionLinePoints = [
+         new BABYLON.Vector3(-radiusPosition - radius + 0.2, 0.1, 0),
+         new BABYLON.Vector3(-radiusPosition - radius, 0, 0),
+         new BABYLON.Vector3(-radiusPosition - radius + 0.2, -0.1, 0),
+         new BABYLON.Vector3(-radiusPosition - radius, 0, 0),
+         new BABYLON.Vector3(radius - radiusPosition, 0, 0),
+         new BABYLON.Vector3(radius - radiusPosition - 0.2, 0.1, 0),
+         new BABYLON.Vector3(radius - radiusPosition, 0, 0),
+         new BABYLON.Vector3(radius - radiusPosition - 0.2, -0.1, 0)
+      ];
+
+      dimension.diameter = true;
+
+      return _uiDimension(
+         grid,
+         dimension,
+         dimensionLinePoints,
+         position,
+         dimAngle,
+         'Dimension_Diameter_',
+         name,
+         options,
+         scene
+      );
+   }
+
+   function _addDimensionRadiusToGrid (grid, dimension, center, end, position, name, options, scene) {
+      var dimDirection = position.subtract(center).normalizeToNew();
+      var dimAngle = Math.atan2(dimDirection.y, dimDirection.x);
+
+      var radius = end.subtract(center).length();
+      var radiusPosition = center.subtract(position).length();
+
+      var dimensionLinePoints = [
+         new BABYLON.Vector3(-radiusPosition, 0, 0),
+         new BABYLON.Vector3(radius - radiusPosition, 0, 0),
+         new BABYLON.Vector3(radius - radiusPosition - 0.2, 0.1, 0),
+         new BABYLON.Vector3(radius - radiusPosition, 0, 0),
+         new BABYLON.Vector3(radius - radiusPosition - 0.2, -0.1, 0)
+      ];
+
+      return _uiDimension(
+         grid,
+         dimension,
+         dimensionLinePoints,
+         position,
+         dimAngle,
+         'Dimension_Radius_',
+         name,
+         options,
+         scene
+      );
+   }
+
+   function _addDimensionToGrid (grid, axis, dimension, start, end, position, name, options, scene) {
+      function dLength (angle, x, y) {
+         return (y * Math.sin(angle) + x * Math.cos(angle)) / (Math.pow(Math.sin(angle), 2) + Math.pow(Math.cos(angle), 2));
+      }
+
+      function eLength (angle, x, y, d) {
+         return (x * Math.sin(angle) - y * Math.cos(angle)) / (Math.pow(Math.sin(angle), 2) + Math.pow(Math.cos(angle), 2));
+      }
+
+      var dStart, dEnd, eEnd, eStart, vStart, vEnd, dimAngle;
+
+      if (axis === 'x') {
+         dimAngle = 0;
+
+      } else if (axis === 'y') {
+         dimAngle = Math.PI / 2;
+
+      } else if (axis === 'radius') {
+         var dimDirection = end.subtract(start).normalizeToNew();
+         dimAngle = Math.atan2(dimDirection.y, dimDirection.x);
+      }
+
+      vStart = start.subtract(position);
+      vEnd = end.subtract(position);
+
+      dStart = dLength(dimAngle, vStart.x, vStart.y);
+      dEnd = dLength(dimAngle, vEnd.x, vEnd.y);
+
+      eStart = eLength(dimAngle, vStart.x, vStart.y, dStart);
+      eEnd = eLength(dimAngle, vEnd.x, vEnd.y, dEnd);
+
+      var dimensionLinePoints = [
+         // Line start
+         new BABYLON.Vector3(dStart, -eStart + Math.sign(eStart) * 0.3, 0),
+         new BABYLON.Vector3(dStart, Math.sign(eStart) * 0.1, 0),
+         // Arrow start
+         new BABYLON.Vector3(dStart, 0, 0),
+         new BABYLON.Vector3(dStart + 0.2, 0.1, 0),
+         new BABYLON.Vector3(dStart, 0, 0),
+         new BABYLON.Vector3(dStart + 0.2, -0.1, 0),
+         new BABYLON.Vector3(dStart, 0, 0),
+         // DimensionLine
+         new BABYLON.Vector3(dEnd, 0, 0),
+         // Arrow end
+         new BABYLON.Vector3(dEnd - 0.2, 0.1, 0),
+         new BABYLON.Vector3(dEnd, 0, 0),
+         new BABYLON.Vector3(dEnd - 0.2, -0.1, 0),
+         new BABYLON.Vector3(dEnd, 0, 0),
+         // Line end
+         new BABYLON.Vector3(dEnd, Math.sign(eEnd) * 0.1, 0),
+         new BABYLON.Vector3(dEnd, -eEnd + Math.sign(eEnd) * 0.3, 0)
+      ];
+
+      return _uiDimension(
+         grid,
+         dimension,
+         dimensionLinePoints,
+         position,
+         dimAngle,
+         'Dimension_',
+         name,
+         options,
+         scene
+      );
    }
 
    function _addPlaneToGrid (grid, mainShape, holes, name, options, scene) {
