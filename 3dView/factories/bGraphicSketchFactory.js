@@ -358,8 +358,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, constraint.material, 'emissiveColor', colorMouseOver));
 
       if (grid) {
-         constraint.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
-         constraint.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+         constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable', true));
+         constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable', false));
       }
 
       return constraint;
@@ -553,8 +553,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       }
 
       if (grid) {
-         item.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
-         item.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+         item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable', true));
+         item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable', false));
       }
 
       return item;
@@ -610,8 +610,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, radius, 'edgesColor', colorMouseOver));
 
       if (grid) {
-         radius.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
-         radius.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+         radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable', true));
+         radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable', false));
       }
 
       return radius;
@@ -665,8 +665,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, line, 'edgesColor', colorMouseOver));
 
       if (grid) {
-         line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable'));
-         line.actionManager.registerAction(new BABYLON.SwitchBooleanAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable'));
+         line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable', true));
+         line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable', false));
       }
 
       return line;
@@ -894,6 +894,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       if (options.scaling) {
          point.scaling.x = options.scaling;
          point.scaling.z = options.scaling;
+      }
+
+      if (typeof options.dragAndDrop === 'boolean') {
+         if (point.behaviors.length === 1) point.behaviors[0].enabled = options.dragAndDrop;
       }
    }
 
