@@ -3,7 +3,6 @@
 app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFactory) {
    var Services = {
       addConstraintToGrid: _addConstraintToGrid,
-      addDimensionDiameterToGrid: _addDimensionDiameterToGrid,
       addDimensionToGrid: _addDimensionToGrid,
       addDimensionRadiusToGrid: _addDimensionRadiusToGrid,
       addPlaneToGrid: _addPlaneToGrid,
@@ -366,53 +365,42 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
       return constraint;
    }
 
-   function _addDimensionDiameterToGrid (grid, dimension, center, end, position, name, options, scene) {
+   function _addDimensionRadiusToGrid (grid, dimension, center, end, position, style, name, options, scene) {
+      var dimensionLinePoints;
       var dimDirection = position.subtract(center).normalizeToNew();
       var dimAngle = Math.atan2(dimDirection.y, dimDirection.x);
 
       var radius = end.subtract(center).length();
       var radiusPosition = center.subtract(position).length();
 
-      var dimensionLinePoints = [
-         new BABYLON.Vector3(-radiusPosition - radius + 0.2, 0.1, 0),
-         new BABYLON.Vector3(-radiusPosition - radius, 0, 0),
-         new BABYLON.Vector3(-radiusPosition - radius + 0.2, -0.1, 0),
-         new BABYLON.Vector3(-radiusPosition - radius, 0, 0),
-         new BABYLON.Vector3(radius - radiusPosition, 0, 0),
-         new BABYLON.Vector3(radius - radiusPosition - 0.2, 0.1, 0),
-         new BABYLON.Vector3(radius - radiusPosition, 0, 0),
-         new BABYLON.Vector3(radius - radiusPosition - 0.2, -0.1, 0)
-      ];
+      if (style === 'radius') {
+         dimensionLinePoints = [
+            new BABYLON.Vector3(-radiusPosition, 0, 0),
+            new BABYLON.Vector3(-radiusPosition, 0, 0),
+            new BABYLON.Vector3(-radiusPosition, 0, 0),
+            new BABYLON.Vector3(-radiusPosition, 0, 0),
+            new BABYLON.Vector3(radius - radiusPosition, 0, 0),
+            new BABYLON.Vector3(radius - radiusPosition - 0.2, 0.1, 0),
+            new BABYLON.Vector3(radius - radiusPosition, 0, 0),
+            new BABYLON.Vector3(radius - radiusPosition - 0.2, -0.1, 0)
+         ];
 
-      dimension.diameter = true;
+         dimension.diameter = false;
 
-      return _uiDimension(
-         grid,
-         dimension,
-         dimensionLinePoints,
-         position,
-         dimAngle,
-         'Dimension_Diameter_',
-         name,
-         options,
-         scene
-      );
-   }
+      } else if (style === 'diameter') {
+         dimensionLinePoints = [
+            new BABYLON.Vector3(-radiusPosition - radius + 0.2, 0.1, 0),
+            new BABYLON.Vector3(-radiusPosition - radius, 0, 0),
+            new BABYLON.Vector3(-radiusPosition - radius + 0.2, -0.1, 0),
+            new BABYLON.Vector3(-radiusPosition - radius, 0, 0),
+            new BABYLON.Vector3(radius - radiusPosition, 0, 0),
+            new BABYLON.Vector3(radius - radiusPosition - 0.2, 0.1, 0),
+            new BABYLON.Vector3(radius - radiusPosition, 0, 0),
+            new BABYLON.Vector3(radius - radiusPosition - 0.2, -0.1, 0)
+         ];
 
-   function _addDimensionRadiusToGrid (grid, dimension, center, end, position, name, options, scene) {
-      var dimDirection = position.subtract(center).normalizeToNew();
-      var dimAngle = Math.atan2(dimDirection.y, dimDirection.x);
-
-      var radius = end.subtract(center).length();
-      var radiusPosition = center.subtract(position).length();
-
-      var dimensionLinePoints = [
-         new BABYLON.Vector3(-radiusPosition, 0, 0),
-         new BABYLON.Vector3(radius - radiusPosition, 0, 0),
-         new BABYLON.Vector3(radius - radiusPosition - 0.2, 0.1, 0),
-         new BABYLON.Vector3(radius - radiusPosition, 0, 0),
-         new BABYLON.Vector3(radius - radiusPosition - 0.2, -0.1, 0)
-      ];
+         dimension.diameter = true;
+      }
 
       return _uiDimension(
          grid,
