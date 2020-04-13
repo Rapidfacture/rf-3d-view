@@ -77,13 +77,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
    function _getText (dimension) {
       dimension = dimension || {};
-      dimension.value = dimension.value || 0;
       dimension.tolerance = dimension.tolerance || {};
 
-      if (dimension.value === 0) return '';
-
       var diameter = (dimension.diameter ? '⌀' : '');
-      var dimValue = Math.round(dimension.value * dimensionProperties.valRound) / dimensionProperties.valRound;
+      var dimValue = Math.round((dimension.value || 0) * dimensionProperties.valRound) / dimensionProperties.valRound;
       var tolValue = dimension.tolerance.value || '';
       var tolType = dimension.tolerance.type || '';
 
@@ -623,8 +620,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       var colorDefault = basicElementColors[options.status];
       var colorMouseOver = basicElementColors.mouseOver;
+
       if (options.registerActions) {
          if (options.replacement) options.replacement.dispose();
+
          line = BABYLON.Mesh.CreateLines(
             (options.replacement ? options.replacement.name : 'Straight_' + name),
             [start, end],
@@ -794,8 +793,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
          basicElement.edgesColor = color;
          basicElement.actionManager.actions[0].value = color;
-
       }
+
       if (options.scaling !== undefined) {
          basicElement.edgesWidth = basicElementProperties.lineWidth * options.scaling;
       }
