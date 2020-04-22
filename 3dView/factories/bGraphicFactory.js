@@ -120,33 +120,48 @@ app.factory('bGraphicFactory', [function () {
       var paths = [];
       var points = [];
       var mode = 'default';
-      var startElemSet = false;
       var subTypes = ['default'];
       var dX = offset[0];
       var dZ = offset[2];
+      var x, y, z, item0, item1;
 
       if (!elements) return {path: path, paths: paths, points: points};
 
-      elements.forEach(function (elem) {
-         if (elem.L && !startElemSet) {
-            startElemSet = true;
-            path.push(new BABYLON.Vector3(elem.L.X + dX, elem.L.Z + dZ, 0));
+      elements.forEach(function (elem, $index) {
+         if ($index === 0) {
+            if (elem.L) {
+               path.push(new BABYLON.Vector3(elem.L.X + dX, elem.L.Z + dZ, 0));
 
-         } else if (startElemSet) {
+            } else if (elem.PATH) {
+               item0 = (elem.PATH[0].L ? elem.PATH[0].L : elem.PATH[0].C);
+               item1 = (elem.PATH[1].L ? elem.PATH[1].L : elem.PATH[1].C);
+
+               points.push(new BABYLON.Vector3(
+                  (typeof item1.X === 'number' ? item1.X : item0.X) + dX,
+                  (typeof item1.Y === 'number' ? item1.Y : item0.Y),
+                  (typeof item1.Z === 'number' ? item1.Z : item0.Z) + dZ
+               ));
+
+               path.push(new BABYLON.Vector3(
+                  (typeof item1.X === 'number' ? item1.X : item0.X) + dX,
+                  (typeof item1.Z === 'number' ? item1.Z : item0.Z) + dZ,
+                  (typeof item1.Y === 'number' ? item1.Y : item0.Y)
+               ));
+            }
+
+         } else {
             var prev = path.length - 1;
-            var x, y, z;
 
             if (elem.L) {
-               x = (typeof elem.L.X === 'number') ? elem.L.X + dX : path[prev].x;
-               y = (typeof elem.L.Z === 'number') ? elem.L.Z + dZ : path[prev].y;
+               x = (typeof elem.L.X === 'number' ? elem.L.X + dX : path[prev].x);
+               y = (typeof elem.L.Z === 'number' ? elem.L.Z + dZ : path[prev].y);
                z = 0;
 
                path.push(new BABYLON.Vector3(x, y, z));
-            }
 
-            if (elem.C) {
-               x = (typeof elem.C.X === 'number') ? elem.C.X + dX : path[prev].x;
-               y = (typeof elem.C.Z === 'number') ? elem.C.Z + dZ : path[prev].y;
+            } else if (elem.C) {
+               x = (typeof elem.C.X === 'number' ? elem.C.X + dX : path[prev].x);
+               y = (typeof elem.C.Z === 'number' ? elem.C.Z + dZ : path[prev].y);
                z = 0;
 
                var end = {x: x, y: y, z: 0};
@@ -155,16 +170,21 @@ app.factory('bGraphicFactory', [function () {
                var clockwise = elem.C.DR === '+';
 
                path = path.concat(_getRadiusPoints(start, end, center, clockwise));
-            }
 
-            if (elem.PATH) {
-               var item0 = (elem.PATH[0].L ? elem.PATH[0].L : elem.PATH[0].C);
-               var item1 = (elem.PATH[1].L ? elem.PATH[1].L : elem.PATH[1].C);
+            } else if (elem.PATH) {
+               item0 = (elem.PATH[0].L ? elem.PATH[0].L : elem.PATH[0].C);
+               item1 = (elem.PATH[1].L ? elem.PATH[1].L : elem.PATH[1].C);
 
                points.push(new BABYLON.Vector3(
-                  (typeof item1.X === 'number' ? item1.X : item0.X),
+                  (typeof item1.X === 'number' ? item1.X : item0.X) + dX,
                   (typeof item1.Y === 'number' ? item1.Y : item0.Y),
-                  (typeof item1.Z === 'number' ? item1.Z : item0.Z)
+                  (typeof item1.Z === 'number' ? item1.Z : item0.Z) + dZ
+               ));
+
+               path.push(new BABYLON.Vector3(
+                  (typeof item1.X === 'number' ? item1.X : item0.X) + dX,
+                  (typeof item1.Z === 'number' ? item1.Z : item0.Z) + dZ,
+                  (typeof item1.Y === 'number' ? item1.Y : item0.Y)
                ));
             }
 
