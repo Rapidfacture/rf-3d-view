@@ -390,7 +390,7 @@ app.factory('bGraphicFactory', [function () {
    }
 
    function _paintView (engine, scene, data, click, ctrlClick) {
-      if (!data) return;
+      if (!data || !data.items) return;
 
       data.items = JSON.parse(JSON.stringify(data.items));
 
