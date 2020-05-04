@@ -518,6 +518,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
 
       // Set point in front for accurate visibility and selection
       // min. 0.01 due to interaction radius of line
+      item.metadata = {};
       item.position = position;
       item.position.z = pointProperties.offsetZ;
       item.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
