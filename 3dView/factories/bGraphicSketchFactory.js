@@ -808,8 +808,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          constraint.material.diffuseColor = color;
          constraint.material.emissiveColor = color;
 
-         constraint.actionManager.actions[0].value = color;
-         constraint.actionManager.actions[1].value = color;
+         if (constraint.actionManager) {
+            constraint.actionManager.actions[0].value = color;
+            constraint.actionManager.actions[1].value = color;
+         }
       }
 
       if (options.scaling) {
@@ -833,14 +835,18 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          elements[1].material.diffuseColor = colorText;
          elements[1].material.emissiveColor = colorText;
 
-         elements[1].actionManager.actions[0].value = colorText;
-         elements[1].actionManager.actions[1].value = colorText;
+         if (elements[1].actionManager) {
+            elements[1].actionManager.actions[0].value = colorText;
+            elements[1].actionManager.actions[1].value = colorText;
+         }
 
          elements[2].material.diffuseColor = colorPoint;
          elements[2].material.emissiveColor = colorPoint;
 
-         elements[2].actionManager.actions[0].value = colorText;
-         elements[2].actionManager.actions[1].value = colorText;
+         if (elements[2].actionManager) {
+            elements[2].actionManager.actions[0].value = colorText;
+            elements[2].actionManager.actions[1].value = colorText;
+         }
       }
 
       if (options.textIsPickable !== undefined) {
@@ -887,8 +893,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
          point.material.diffuseColor = color;
          point.material.emissiveColor = color;
 
-         point.actionManager.actions[0].value = color;
-         point.actionManager.actions[1].value = color;
+         if (point.actionManager) {
+            point.actionManager.actions[0].value = color;
+            point.actionManager.actions[1].value = color;
+         }
       }
 
       if (options.scaling) {
