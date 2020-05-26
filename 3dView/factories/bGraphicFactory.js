@@ -438,97 +438,39 @@ app.factory('bGraphicFactory', [function () {
             {
                group: 0,
                offset: [0, 0, 0],
+               transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
                primitives: [
                   {
                      boolean: 'add',
                      offset: [0, 0, 0],
-                     path: [
-                        {L: {X: 0, Y: 0, Z: 0.19999999999998863}},
-                        {L: {QUALITY: 6.3, Z: -199.8}},
-                        {L: {QUALITY: 6.3, X: 8.8925}},
-                        {
-                           IGNORE: false,
-                           PATH: [
-                              {L: {X: 0, Y: 0, Z: -199.8}},
-                              {L: {QUALITY: 6.3, X: 8.8925}},
-                              {L: {QUALITY: 6.3, Z: 0.19999999999998863}}
-                           ],
-                           TRANS_MAX: 0.3,
-                           TRANS_MIN: 0.1
-                        },
-                        {L: {QUALITY: 6.3, Z: 0.19999999999998863}},
-                        {
-                           IGNORE: false,
-                           PATH: [
-                              {L: {X: 8.8925, Y: 0, Z: -199.8}},
-                              {L: {QUALITY: 6.3, Z: 0.19999999999998863}},
-                              {L: {QUALITY: 6.3, X: 0}}
-                           ],
-                           TRANS_MAX: 0.3,
-                           TRANS_MIN: 0.1
-                        },
-                        {L: {QUALITY: 6.3, X: 0}}
+                     shape: 'freeForm',
+                     positions: [
+                        0, 0, 0,
+                        0, 0, 10,
+                        0, 10, 10,
+                        0, 10, 0,
+                        10, 0, 0,
+                        10, 0, 10,
+                        10, 10, 10,
+                        10, 10, 0
                      ],
-                     shape: 'rotational',
+                     indices: [
+                        0, 2, 1,
+                        0, 3, 2,
+                        4, 5, 6,
+                        4, 6, 7,
+                        0, 7, 3,
+                        0, 4, 7,
+                        1, 6, 5,
+                        1, 2, 6,
+                        0, 1, 4,
+                        5, 4, 1,
+                        2, 7, 6,
+                        3, 7, 2
+                     ],
                      transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
                   }
                ],
-               transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-               type: 'contourRaw'
-            },
-            {
-               group: 0,
-               offset: [0, 0, 0],
-               primitives: [
-                  {
-                     boolean: 'add',
-                     offset: [0, 0, 0],
-                     path: [
-                        {L: {X: 0, Y: 0, Z: 0}},
-                        {L: {QUALITY: 6.3, Z: -34}},
-                        {L: {QUALITY: 6.3, X: 7.8925}},
-                        {L: {QUALITY: 6.3, X: 8.8925, Z: -33}},
-                        {L: {QUALITY: 6.3, Z: -30}},
-                        {
-                           IGNORE: false,
-                           PATH: [
-                              {L: {X: 8.8925, Y: 0, Z: -33}},
-                              {L: {QUALITY: 6.3, Z: -30}},
-                              {L: {QUALITY: 6.3, X: 4.9775}}
-                           ],
-                           TRANS_MAX: 0.3,
-                           TRANS_MIN: 0.1
-                        },
-                        {L: {QUALITY: 6.3, X: 4.9775}},
-                        {
-                           IGNORE: true,
-                           PATH: [
-                              {L: {X: 8.8925, Y: 0, Z: -30}},
-                              {L: {QUALITY: 6.3, X: 4.9775}},
-                              {L: {QUALITY: 6.3, Z: -2}}
-                           ],
-                           TRANS_MAX: 0.5,
-                           TRANS_MIN: 0.3
-                        },
-                        {L: {QUALITY: 6.3, Z: -2}},
-                        {L: {QUALITY: 6.3, X: 3.8227994616207486, Z: 0}},
-                        {
-                           IGNORE: false,
-                           PATH: [
-                              {L: {X: 4.9775, Y: 0, Z: -2}},
-                              {L: {QUALITY: 6.3, X: 3.8227994616207486, Z: 0}},
-                              {L: {QUALITY: 6.3, X: 0}}
-                           ],
-                           TRANS_MAX: 0.3,
-                           TRANS_MIN: 0.1
-                        },
-                        {L: {QUALITY: 6.3, X: 0}}
-                     ],
-                     shape: 'rotational',
-                     transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-                  }
-               ],
-               transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
                type: 'contourFinish'
             },
             {
@@ -540,12 +482,34 @@ app.factory('bGraphicFactory', [function () {
                      boolean: 'add',
                      offset: [0, 0, 0],
                      shape: 'freeForm',
-                     positions: [0, 0, 0,  0, 0, 10,  0, 10, 10,  0, 10, 0,  10, 0, 0,  10, 0, 10,  10, 10, 10,  10, 10, 0],
-                     indices: [0, 2, 1,  0, 3, 2,  4, 5, 6,  4, 6, 7,  0, 7, 3,  0, 4, 7,  1, 6, 5,  1, 2, 6,  0, 1, 4,  5, 4, 1,  2, 7, 6,  3, 7, 2],
+                     positions: [
+                        -2, -12, -5,
+                        -2, -12, 12,
+                        -2, 12, 12,
+                        -2, 12, -5,
+                        12, -12, -5,
+                        12, -12, 12,
+                        12, 12, 12,
+                        12, 12, -5
+                     ],
+                     indices: [
+                        0, 2, 1,
+                        0, 3, 2,
+                        4, 5, 6,
+                        4, 6, 7,
+                        0, 7, 3,
+                        0, 4, 7,
+                        1, 6, 5,
+                        1, 2, 6,
+                        0, 1, 4,
+                        5, 4, 1,
+                        2, 7, 6,
+                        3, 7, 2
+                     ],
                      transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
                   }
                ],
-               type: 'contourFinish'
+               type: 'contourRaw'
             }
          ]
       };
@@ -628,9 +592,9 @@ app.factory('bGraphicFactory', [function () {
             var item = group.origin[k];
 
             var originOffset = new BABYLON.Vector3.FromArray(item.offset);
-            var originTranslation = _transformationMatrixToAxisAngle(item.transformation);
+            var originTransformation = _transformationMatrixToAxisAngle(item.transformation);
 
-            _showAxis(group.id, CoT, originOffset, originTranslation, k, {size: 20}, scene);
+            _showAxis(group.id, CoT, originOffset, originTransformation, k, {size: 20}, scene);
          }
 
          groups['G' + group.id] = {node: CoT, meshes: {}};
@@ -783,7 +747,6 @@ app.factory('bGraphicFactory', [function () {
                   );
 
                } else if (primitive.shape === 'freeForm') {
-                  console.log('freeForm', primitive);
                   primitiveMesh = new BABYLON.Mesh('FreeForm_' + $index, scene);
                   var normals = [];
                   var vertexData = new BABYLON.VertexData();
@@ -840,7 +803,10 @@ app.factory('bGraphicFactory', [function () {
 
                // primitiveMesh.material = material;
                primitiveMesh.parent = groups['G' + item.group].node;
-               primitiveMesh.rotate(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
+
+               if (primitive.shape !== 'freeForm') {
+                  primitiveMesh.rotate(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
+               }
 
                _positionPrimitiveMesh(primitiveMesh, primitive);
             });
@@ -1041,6 +1007,12 @@ app.factory('bGraphicFactory', [function () {
          return plane;
       };
 
+      var CoT = new BABYLON.TransformNode(groupId, scene);
+      CoT.parent = node;
+      CoT.translate(translation, BABYLON.Space.LOCAL);
+      CoT.rotate(rotation.vector, rotation.angle);
+
+      var isPickable = (options.isPickable === undefined ? true : options.isPickable);
       var size = options.size || 5;
       var axis = options.axis || 'xyz';
       var result = {};
@@ -1058,17 +1030,15 @@ app.factory('bGraphicFactory', [function () {
             scene
          );
          axisX.color = new BABYLON.Color3(1, 0, 0);
-         axisX.isPickable = (options.isPickable === undefined ? true : options.isPickable);
+         axisX.isPickable = isPickable;
          axisX.renderingGroupId = 3;
-         axisX.parent = node;
-         axisX.translate(translation, 1, BABYLON.Space.LOCAL);
+         axisX.parent = CoT;
 
          var xChar = makeTextPlane('X', 'red');
          xChar.isPickable = false;
          xChar.position = new BABYLON.Vector3(0.9 * size, -0.05 * size, 0);
          xChar.renderingGroupId = 3;
-         xChar.parent = node;
-         xChar.translate(translation, 1, BABYLON.Space.LOCAL);
+         xChar.parent = CoT;
 
          result.xAxis = axisX;
          result.xChar = xChar;
@@ -1087,17 +1057,15 @@ app.factory('bGraphicFactory', [function () {
             scene
          );
          axisY.color = new BABYLON.Color3(0, 1, 0);
-         axisY.isPickable = (options.isPickable === undefined ? true : options.isPickable);
+         axisY.isPickable = isPickable;
          axisY.renderingGroupId = 3;
-         axisY.parent = node;
-         axisY.translate(translation, 1, BABYLON.Space.LOCAL);
+         axisY.parent = CoT;
 
          var yChar = makeTextPlane('Y', 'green');
          yChar.isPickable = false;
          yChar.position = new BABYLON.Vector3(0, 0.9 * size, -0.05 * size);
          yChar.renderingGroupId = 3;
-         yChar.parent = node;
-         yChar.translate(translation, 1, BABYLON.Space.LOCAL);
+         yChar.parent = CoT;
 
          result.yAxis = axisY;
          result.yChar = yChar;
@@ -1116,17 +1084,15 @@ app.factory('bGraphicFactory', [function () {
             scene
          );
          axisZ.color = new BABYLON.Color3(0, 0, 1);
-         axisZ.isPickable = (options.isPickable === undefined ? true : options.isPickable);
+         axisZ.isPickable = isPickable;
          axisZ.renderingGroupId = 3;
-         axisZ.parent = node;
-         axisZ.translate(translation, 1, BABYLON.Space.LOCAL);
+         axisZ.parent = CoT;
 
          var zChar = makeTextPlane('Z', 'blue');
          zChar.isPickable = false;
          zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
          zChar.renderingGroupId = 3;
-         zChar.parent = node;
-         zChar.translate(translation, 1, BABYLON.Space.LOCAL);
+         zChar.parent = CoT;
 
          result.zAxis = axisZ;
          result.zChar = zChar;
