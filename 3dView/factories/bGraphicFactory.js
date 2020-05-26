@@ -125,7 +125,7 @@ app.factory('bGraphicFactory', [function () {
       var dZ = offset[2];
       var x, y, z, item0, item1;
 
-      if (!elements) return {path: path, paths: paths, points: points};
+      if (!elements) return {path: path, paths: paths, points: points, subTypes: subTypes};
 
       elements.forEach(function (elem, $index) {
          if ($index === 0) {
@@ -219,6 +219,18 @@ app.factory('bGraphicFactory', [function () {
       if (!split) paths.push({path: path});
 
       return {paths: paths, points: points, subTypes: subTypes};
+   }
+
+   function _positionPrimitiveMesh (mesh, primitive) {
+      if (primitive.transformation) {
+         var transformation = _transformationMatrixToAxisAngle(primitive.transformation);
+         mesh.rotate(transformation.vector, transformation.angle, BABYLON.Space.WORLD);
+      }
+
+      if (primitive.offset) {
+         var offset = new BABYLON.Vector3.FromArray(primitive.offset);
+         mesh.translate(offset, 1, BABYLON.Space.WORLD);
+      }
    }
 
    function _transformationMatrixToAxisAngle (matrix) {
@@ -412,6 +424,133 @@ app.factory('bGraphicFactory', [function () {
    function _paintView (engine, scene, data, click, ctrlClick) {
       if (!data || !data.items) return;
 
+      /*
+      data = {
+         groups: [
+            {
+               id: 0,
+               offset: [0, 0, 0],
+               origin: {},
+               transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+            }
+         ],
+         items: [
+            {
+               group: 0,
+               offset: [0, 0, 0],
+               primitives: [
+                  {
+                     boolean: 'add',
+                     offset: [0, 0, 0],
+                     path: [
+                        {L: {X: 0, Y: 0, Z: 0.19999999999998863}},
+                        {L: {QUALITY: 6.3, Z: -199.8}},
+                        {L: {QUALITY: 6.3, X: 8.8925}},
+                        {
+                           IGNORE: false,
+                           PATH: [
+                              {L: {X: 0, Y: 0, Z: -199.8}},
+                              {L: {QUALITY: 6.3, X: 8.8925}},
+                              {L: {QUALITY: 6.3, Z: 0.19999999999998863}}
+                           ],
+                           TRANS_MAX: 0.3,
+                           TRANS_MIN: 0.1
+                        },
+                        {L: {QUALITY: 6.3, Z: 0.19999999999998863}},
+                        {
+                           IGNORE: false,
+                           PATH: [
+                              {L: {X: 8.8925, Y: 0, Z: -199.8}},
+                              {L: {QUALITY: 6.3, Z: 0.19999999999998863}},
+                              {L: {QUALITY: 6.3, X: 0}}
+                           ],
+                           TRANS_MAX: 0.3,
+                           TRANS_MIN: 0.1
+                        },
+                        {L: {QUALITY: 6.3, X: 0}}
+                     ],
+                     shape: 'rotational',
+                     transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+                  }
+               ],
+               transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+               type: 'contourRaw'
+            },
+            {
+               group: 0,
+               offset: [0, 0, 0],
+               primitives: [
+                  {
+                     boolean: 'add',
+                     offset: [0, 0, 0],
+                     path: [
+                        {L: {X: 0, Y: 0, Z: 0}},
+                        {L: {QUALITY: 6.3, Z: -34}},
+                        {L: {QUALITY: 6.3, X: 7.8925}},
+                        {L: {QUALITY: 6.3, X: 8.8925, Z: -33}},
+                        {L: {QUALITY: 6.3, Z: -30}},
+                        {
+                           IGNORE: false,
+                           PATH: [
+                              {L: {X: 8.8925, Y: 0, Z: -33}},
+                              {L: {QUALITY: 6.3, Z: -30}},
+                              {L: {QUALITY: 6.3, X: 4.9775}}
+                           ],
+                           TRANS_MAX: 0.3,
+                           TRANS_MIN: 0.1
+                        },
+                        {L: {QUALITY: 6.3, X: 4.9775}},
+                        {
+                           IGNORE: true,
+                           PATH: [
+                              {L: {X: 8.8925, Y: 0, Z: -30}},
+                              {L: {QUALITY: 6.3, X: 4.9775}},
+                              {L: {QUALITY: 6.3, Z: -2}}
+                           ],
+                           TRANS_MAX: 0.5,
+                           TRANS_MIN: 0.3
+                        },
+                        {L: {QUALITY: 6.3, Z: -2}},
+                        {L: {QUALITY: 6.3, X: 3.8227994616207486, Z: 0}},
+                        {
+                           IGNORE: false,
+                           PATH: [
+                              {L: {X: 4.9775, Y: 0, Z: -2}},
+                              {L: {QUALITY: 6.3, X: 3.8227994616207486, Z: 0}},
+                              {L: {QUALITY: 6.3, X: 0}}
+                           ],
+                           TRANS_MAX: 0.3,
+                           TRANS_MIN: 0.1
+                        },
+                        {L: {QUALITY: 6.3, X: 0}}
+                     ],
+                     shape: 'rotational',
+                     transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+                  }
+               ],
+               transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+               type: 'contourFinish'
+            },
+            {
+               group: 0,
+               offset: [0, 0, 0],
+               transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+               primitives: [
+                  {
+                     boolean: 'add',
+                     offset: [0, 0, 0],
+                     shape: 'freeForm',
+                     positions: [0, 0, 0,  0, 0, 10,  0, 10, 10,  0, 10, 0,  10, 0, 0,  10, 0, 10,  10, 10, 10,  10, 10, 0],
+                     indices: [0, 2, 1,  0, 3, 2,  4, 5, 6,  4, 6, 7,  0, 7, 3,  0, 4, 7,  1, 6, 5,  1, 2, 6,  0, 1, 4,  5, 4, 1,  2, 7, 6,  3, 7, 2],
+                     transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
+                  }
+               ],
+               type: 'contourFinish'
+            }
+         ]
+      };
+      */
+
       data.items = JSON.parse(JSON.stringify(data.items));
 
       click = click || function () {};
@@ -524,11 +663,21 @@ app.factory('bGraphicFactory', [function () {
          var lines = [];
 
          item.primitives.forEach(function (primitive, i) {
-            var shape = _getShape(
-               primitive.path,
-               [0, 0, 0],
-               primitive.shape !== 'extrusion'
-            );
+            var shape;
+
+            if (primitive.shape === 'freeForm') {
+               shape = {
+                  paths: [{}],
+                  subTypes: ['default']
+               };
+
+            } else {
+               shape = _getShape(
+                  primitive.path,
+                  [0, 0, 0],
+                  primitive.shape !== 'extrusion'
+               );
+            }
 
             var materialType = types[item.type];
 
@@ -610,9 +759,9 @@ app.factory('bGraphicFactory', [function () {
             }
 
             shape.paths.forEach(function (path) {
-               if (path.length < 2) return;
+               if (primitive.shape !== 'freeForm' && path.length < 2) return;
 
-               var primitiveMesh, offset, transformation;
+               var primitiveMesh;
 
                if (primitive.shape === 'rotational') {
                   primitiveMesh = BABYLON.MeshBuilder.CreateLathe(
@@ -633,6 +782,23 @@ app.factory('bGraphicFactory', [function () {
                      }
                   );
 
+               } else if (primitive.shape === 'freeForm') {
+                  console.log('freeForm', primitive);
+                  primitiveMesh = new BABYLON.Mesh('FreeForm_' + $index, scene);
+                  var normals = [];
+                  var vertexData = new BABYLON.VertexData();
+                  BABYLON.VertexData.ComputeNormals(
+                     primitive.positions,
+                     primitive.indices,
+                     normals
+                  );
+
+                  vertexData.positions = primitive.positions;
+                  vertexData.indices = primitive.indices;
+                  vertexData.normals = normals;
+                  vertexData.uvs = [];
+                  vertexData.applyToMesh(primitiveMesh, true);
+
                } else {
                   var line = BABYLON.Mesh.CreateLines(
                      (item.id === undefined ? 'Path_' + $index : item.id),
@@ -648,15 +814,7 @@ app.factory('bGraphicFactory', [function () {
                      if (material.color) line.color = material.color;
                   }
 
-                  if (primitive.transformation) {
-                     transformation = _transformationMatrixToAxisAngle(primitive.transformation);
-                     line.rotate(transformation.vector, transformation.angle, BABYLON.Space.WORLD);
-                  }
-
-                  if (primitive.offset) {
-                     offset = new BABYLON.Vector3.FromArray(primitive.offset);
-                     line.translate(offset, 1, BABYLON.Space.WORLD);
-                  }
+                  _positionPrimitiveMesh(line, primitive);
 
                   lines.push(line);
                }
@@ -684,15 +842,7 @@ app.factory('bGraphicFactory', [function () {
                primitiveMesh.parent = groups['G' + item.group].node;
                primitiveMesh.rotate(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
 
-               if (primitive.transformation) {
-                  transformation = _transformationMatrixToAxisAngle(primitive.transformation);
-                  primitiveMesh.rotate(transformation.vector, transformation.angle, BABYLON.Space.WORLD);
-               }
-
-               if (primitive.offset) {
-                  offset = new BABYLON.Vector3.FromArray(primitive.offset);
-                  primitiveMesh.translate(offset, 1, BABYLON.Space.WORLD);
-               }
+               _positionPrimitiveMesh(primitiveMesh, primitive);
             });
          });
 
