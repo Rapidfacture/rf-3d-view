@@ -424,97 +424,6 @@ app.factory('bGraphicFactory', [function () {
    function _paintView (engine, scene, data, click, ctrlClick) {
       if (!data || !data.items) return;
 
-      /*
-      data = {
-         groups: [
-            {
-               id: 0,
-               offset: [0, 0, 0],
-               origin: {},
-               transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-            }
-         ],
-         items: [
-            {
-               group: 0,
-               offset: [0, 0, 0],
-               transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-               primitives: [
-                  {
-                     boolean: 'add',
-                     offset: [0, 0, 0],
-                     shape: 'freeForm',
-                     positions: [
-                        0, 0, 0,
-                        0, 0, 10,
-                        0, 10, 10,
-                        0, 10, 0,
-                        10, 0, 0,
-                        10, 0, 10,
-                        10, 10, 10,
-                        10, 10, 0
-                     ],
-                     indices: [
-                        0, 2, 1,
-                        0, 3, 2,
-                        4, 5, 6,
-                        4, 6, 7,
-                        0, 7, 3,
-                        0, 4, 7,
-                        1, 6, 5,
-                        1, 2, 6,
-                        0, 1, 4,
-                        5, 4, 1,
-                        2, 7, 6,
-                        3, 7, 2
-                     ],
-                     transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-                  }
-               ],
-               type: 'contourFinish'
-            },
-            {
-               group: 0,
-               offset: [0, 0, 0],
-               transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
-               primitives: [
-                  {
-                     boolean: 'add',
-                     offset: [0, 0, 0],
-                     shape: 'freeForm',
-                     positions: [
-                        -2, -12, -5,
-                        -2, -12, 12,
-                        -2, 12, 12,
-                        -2, 12, -5,
-                        12, -12, -5,
-                        12, -12, 12,
-                        12, 12, 12,
-                        12, 12, -5
-                     ],
-                     indices: [
-                        0, 2, 1,
-                        0, 3, 2,
-                        4, 5, 6,
-                        4, 6, 7,
-                        0, 7, 3,
-                        0, 4, 7,
-                        1, 6, 5,
-                        1, 2, 6,
-                        0, 1, 4,
-                        5, 4, 1,
-                        2, 7, 6,
-                        3, 7, 2
-                     ],
-                     transformation: [[1, 0, 0], [0, 1, 0], [0, 0, 1]]
-                  }
-               ],
-               type: 'contourRaw'
-            }
-         ]
-      };
-      */
-
       data.items = JSON.parse(JSON.stringify(data.items));
 
       click = click || function () {};
@@ -629,7 +538,7 @@ app.factory('bGraphicFactory', [function () {
          item.primitives.forEach(function (primitive, i) {
             var shape;
 
-            if (primitive.shape === 'freeForm') {
+            if (['freeForm', 'freeFormOutline'].indexOf(primitive.shape) !== -1) {
                shape = {
                   paths: [{}],
                   subTypes: ['default']
@@ -761,6 +670,32 @@ app.factory('bGraphicFactory', [function () {
                   vertexData.normals = normals;
                   vertexData.uvs = [];
                   vertexData.applyToMesh(primitiveMesh, true);
+
+               } else if (primitive.shape === 'freeFormOutline') {
+                  primitive.indices.forEach(function (indice, $primitiveIndex) {
+                     var points = [];
+                     indice.forEach(function (index) {
+                        points.push(new BABYLON.Vector3(
+                           primitive.positions[3 * index],
+                           primitive.positions[3 * index + 1],
+                           primitive.positions[3 * index + 2]
+                        ));
+                     });
+
+                     var outline = BABYLON.MeshBuilder.CreateLines(
+                        'FreeFormOutline_' + $index + '_' + $primitiveIndex,
+                        {points: points},
+                        scene
+                     );
+
+                     outline.enableEdgesRendering();
+                     outline.edgesWidth = 10;
+                     outline.edgesColor = materialType.lineColor;
+
+                     _positionPrimitiveMesh(outline, primitive);
+
+                     outlines.push(outline);
+                  });
 
                } else {
                   var line = BABYLON.Mesh.CreateLines(
