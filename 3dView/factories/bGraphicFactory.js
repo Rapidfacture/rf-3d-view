@@ -122,6 +122,7 @@ app.factory('bGraphicFactory', [function () {
       var mode = 'default';
       var subTypes = ['default'];
       var dX = offset[0];
+      var dY = offset[1];
       var dZ = offset[2];
       var x, y, z, item0, item1;
 
@@ -130,7 +131,7 @@ app.factory('bGraphicFactory', [function () {
       elements.forEach(function (elem, $index) {
          if ($index === 0) {
             if (elem.L) {
-               path.push(new BABYLON.Vector3(elem.L.X + dX, elem.L.Z + dZ, 0));
+               path.push(new BABYLON.Vector3(elem.L.X + dX, elem.L.Z + dZ, elem.L.Y + dY));
 
             } else if (elem.PATH) {
                item0 = (elem.PATH[0].L ? elem.PATH[0].L : elem.PATH[0].C);
@@ -138,14 +139,14 @@ app.factory('bGraphicFactory', [function () {
 
                points.push(new BABYLON.Vector3(
                   (typeof item1.X === 'number' ? item1.X : item0.X) + dX,
-                  (typeof item1.Y === 'number' ? item1.Y : item0.Y),
+                  (typeof item1.Y === 'number' ? item1.Y : item0.Y) + dY,
                   (typeof item1.Z === 'number' ? item1.Z : item0.Z) + dZ
                ));
 
                path.push(new BABYLON.Vector3(
                   (typeof item1.X === 'number' ? item1.X : item0.X) + dX,
                   (typeof item1.Z === 'number' ? item1.Z : item0.Z) + dZ,
-                  (typeof item1.Y === 'number' ? item1.Y : item0.Y)
+                  (typeof item1.Y === 'number' ? item1.Y : item0.Y) + dY
                ));
             }
 
@@ -155,17 +156,17 @@ app.factory('bGraphicFactory', [function () {
             if (elem.L) {
                x = (typeof elem.L.X === 'number' ? elem.L.X + dX : path[prev].x);
                y = (typeof elem.L.Z === 'number' ? elem.L.Z + dZ : path[prev].y);
-               z = 0;
+               z = (typeof elem.L.Y === 'number' ? elem.L.Y + dY : path[prev].z);
 
                path.push(new BABYLON.Vector3(x, y, z));
 
             } else if (elem.C) {
                x = (typeof elem.C.X === 'number' ? elem.C.X + dX : path[prev].x);
                y = (typeof elem.C.Z === 'number' ? elem.C.Z + dZ : path[prev].y);
-               z = 0;
+               z = (typeof elem.C.Y === 'number' ? elem.C.Y + dY : path[prev].z);
 
-               var end = {x: x, y: y, z: 0};
-               var start = {x: path[prev].x, y: path[prev].y, z: 0};
+               var end = {x: x, y: y, z: z};
+               var start = {x: path[prev].x, y: path[prev].y, z: path[prev].z};
                var center = {x: elem.CC.X, y: elem.CC.Z, z: 0};
                var clockwise = elem.C.DR === '+';
 
@@ -177,14 +178,14 @@ app.factory('bGraphicFactory', [function () {
 
                points.push(new BABYLON.Vector3(
                   (typeof item1.X === 'number' ? item1.X : item0.X) + dX,
-                  (typeof item1.Y === 'number' ? item1.Y : item0.Y),
+                  (typeof item1.Y === 'number' ? item1.Y : item0.Y) + dY,
                   (typeof item1.Z === 'number' ? item1.Z : item0.Z) + dZ
                ));
 
                path.push(new BABYLON.Vector3(
                   (typeof item1.X === 'number' ? item1.X : item0.X) + dX,
                   (typeof item1.Z === 'number' ? item1.Z : item0.Z) + dZ,
-                  (typeof item1.Y === 'number' ? item1.Y : item0.Y)
+                  (typeof item1.Y === 'number' ? item1.Y : item0.Y) + dY
                ));
             }
 
@@ -830,6 +831,21 @@ app.factory('bGraphicFactory', [function () {
 
             groups['G' + item.group].meshes[resultingMesh.id] = resultingMesh;
          }
+
+         outlines.forEach(function (outline) {
+            outline.parent = groups['G' + item.group].node;
+            outline.renderingGroupId = 3;
+
+            outline.rotate(
+               itemTransformation.vector,
+               itemTransformation.angle,
+               BABYLON.Space.WORLD
+            );
+
+            outline.translate(itemOffset, 1, BABYLON.Space.WORLD);
+
+            groups['G' + item.group].meshes['Item' + $index] = outline;
+         });
 
          lines.forEach(function (line) {
             line.parent = groups['G' + item.group].node;
