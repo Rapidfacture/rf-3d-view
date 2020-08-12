@@ -4,72 +4,89 @@ app.factory('bGraphicFactory', [function () {
    var TOLERANCE = 1e-12;
    var RAD_RESOLUTION = 0.209438;
 
-   // Do not set alpha to 0, it will result in 1
-   var types = {
-      chuck: {
-         diffuseColor: BABYLON.Color3.FromHexString('#bbbbbb')
-      },
-      chuckJaws: {
-         diffuseColor: BABYLON.Color3.FromHexString('#bbbbbb')
-      },
-      contourFinish: {
-         alpha: 1,
-         diffuseColor: BABYLON.Color3.Gray(),
-         lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1)
-      },
-      contourRaw: {
-         alpha: 0.2,
-         diffuseColor: BABYLON.Color3.Blue(),
-         lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1)
-      },
-      knurling: {
-         diffuseColor: BABYLON.Color3.Green(),
-         lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1)
-      },
-      threading: {
-         diffuseColor: BABYLON.Color3.Red(),
-         lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1)
-      },
-      revolvingCenter: {
-         diffuseColor: BABYLON.Color3.Gray()
-      },
-      selectable: {
-         diffuseColor: BABYLON.Color3.Blue(),
-         lineColor: BABYLON.Color4(0, 0, 1, 1)
-      },
-      selected: {
-         diffuseColor: BABYLON.Color3.Red(),
-         lineColor: BABYLON.Color4(0, 1, 0, 1)
-      },
-      tailStock: {
-         color: BABYLON.Color3.Gray(),
-         diffuseColor: BABYLON.Color3.Gray()
-      },
-      tool: {
-         diffuseColor: BABYLON.Color3.FromHexString('#f47721')
-      },
-      toolUndefined: {
-         diffuseColor: BABYLON.Color3.Red()
-      },
-      tooling: {
-         color: BABYLON.Color3.White()
-      },
-      toolingFast: {
-         color: BABYLON.Color3.Red()
-      }
-   };
-
-
+   var types = {};
    var groups = {};
 
    var Services = {
-      basicOffsetAdd: _basicOffsetAdd,
       getRadiusPoints: _getRadiusPoints,
-      offsetPaths: _offsetPaths,
-      offsetShape: _offsetShape,
       paintView: _paintView,
       sliceView: _sliceView,
-      showAxis: _showAxis
+      showAxis: _showAxis,
+      start: function (scene) {
+         types = {
+            chuck: {
+               diffuseColor: BABYLON.Color3.FromHexString('#bbbbbb')
+            },
+            chuckJaws: {
+               diffuseColor: BABYLON.Color3.FromHexString('#bbbbbb')
+            },
+            contourFinish: {
+               material: (function () {
+                  var mat = new BABYLON.StandardMaterial('contourFinish', scene);
+                  mat.diffuseColor = BABYLON.Color3.Gray();
+                  mat.alpha = 1;
+                  mat.backFaceCulling = true;
+
+                  return mat;
+               }()),
+               lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1),
+               lineWidth: 10
+            },
+            contourRaw: {
+               material: (function () {
+                  var mat = new BABYLON.StandardMaterial('contourFinish', scene);
+                  mat.diffuseColor = BABYLON.Color3.Blue();
+                  mat.alpha = 0.2;
+                  mat.backFaceCulling = true;
+
+                  return mat;
+               }()),
+               lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1),
+               lineWidth: 10
+            },
+            knurling: {
+               diffuseColor: BABYLON.Color3.Green(),
+               lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1)
+            },
+            threading: {
+               diffuseColor: BABYLON.Color3.Red(),
+               lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1)
+            },
+            revolvingCenter: {
+               diffuseColor: BABYLON.Color3.Gray()
+            },
+            selected: {
+               material: (function () {
+                  var mat = new BABYLON.StandardMaterial('selected', scene);
+                  mat.diffuseColor = BABYLON.Color3.Red();
+                  mat.color = BABYLON.Color3.Red();
+                  mat.alpha = 1;
+                  mat.backFaceCulling = true;
+
+                  return mat;
+               }()),
+               lineColor: BABYLON.Color4(0, 1, 0, 1)
+            },
+            tailStock: {
+               color: BABYLON.Color3.Gray(),
+               diffuseColor: BABYLON.Color3.Gray()
+            },
+            tool: {
+               diffuseColor: BABYLON.Color3.FromHexString('#f47721')
+            },
+            toolUndefined: {
+               diffuseColor: BABYLON.Color3.Red()
+            },
+            tooling: {
+               lineColor: new BABYLON.Color4(1, 1, 1, 1),
+               lineWidth: 1,
+               toolingFast: {
+                  lineColor: new BABYLON.Color4(1, 0, 0, 1),
+                  lineWidth: 1
+               }
+            }
+         };
+      }
    };
 
 
@@ -113,125 +130,6 @@ app.factory('bGraphicFactory', [function () {
       }
 
       return {angle: rawAngle % (2 * Math.PI), radius: c};
-   }
-
-   function _getShape (elements, offset, split) {
-      var path = [];
-      var paths = [];
-      var points = [];
-      var mode = 'default';
-      var subTypes = ['default'];
-      var dX = offset[0];
-      var dY = offset[1];
-      var dZ = offset[2];
-      var x, y, z, item0, item1;
-
-      if (!elements) return {path: path, paths: paths, points: points, subTypes: subTypes};
-
-      elements.forEach(function (elem, $index) {
-         if ($index === 0) {
-            if (elem.L) {
-               path.push(new BABYLON.Vector3(elem.L.X + dX, elem.L.Z + dZ, elem.L.Y + dY));
-
-            } else if (elem.PATH) {
-               item0 = (elem.PATH[0].L ? elem.PATH[0].L : elem.PATH[0].C);
-               item1 = (elem.PATH[1].L ? elem.PATH[1].L : elem.PATH[1].C);
-
-               points.push(new BABYLON.Vector3(
-                  (typeof item1.X === 'number' ? item1.X : item0.X) + dX,
-                  (typeof item1.Y === 'number' ? item1.Y : item0.Y) + dY,
-                  (typeof item1.Z === 'number' ? item1.Z : item0.Z) + dZ
-               ));
-
-               path.push(new BABYLON.Vector3(
-                  (typeof item1.X === 'number' ? item1.X : item0.X) + dX,
-                  (typeof item1.Z === 'number' ? item1.Z : item0.Z) + dZ,
-                  (typeof item1.Y === 'number' ? item1.Y : item0.Y) + dY
-               ));
-            }
-
-         } else {
-            var prev = path.length - 1;
-
-            if (elem.L) {
-               x = (typeof elem.L.X === 'number' ? elem.L.X + dX : path[prev].x);
-               y = (typeof elem.L.Z === 'number' ? elem.L.Z + dZ : path[prev].y);
-               z = (typeof elem.L.Y === 'number' ? elem.L.Y + dY : path[prev].z);
-
-               path.push(new BABYLON.Vector3(x, y, z));
-
-            } else if (elem.C) {
-               x = (typeof elem.C.X === 'number' ? elem.C.X + dX : path[prev].x);
-               y = (typeof elem.C.Z === 'number' ? elem.C.Z + dZ : path[prev].y);
-               z = (typeof elem.C.Y === 'number' ? elem.C.Y + dY : path[prev].z);
-
-               var end = {x: x, y: y, z: z};
-               var start = {x: path[prev].x, y: path[prev].y, z: path[prev].z};
-               var center = {x: elem.CC.X, y: elem.CC.Z, z: 0};
-               var clockwise = elem.C.DR === '+';
-
-               path = path.concat(_getRadiusPoints(start, end, center, clockwise));
-
-            } else if (elem.PATH) {
-               item0 = (elem.PATH[0].L ? elem.PATH[0].L : elem.PATH[0].C);
-               item1 = (elem.PATH[1].L ? elem.PATH[1].L : elem.PATH[1].C);
-
-               points.push(new BABYLON.Vector3(
-                  (typeof item1.X === 'number' ? item1.X : item0.X) + dX,
-                  (typeof item1.Y === 'number' ? item1.Y : item0.Y) + dY,
-                  (typeof item1.Z === 'number' ? item1.Z : item0.Z) + dZ
-               ));
-
-               path.push(new BABYLON.Vector3(
-                  (typeof item1.X === 'number' ? item1.X : item0.X) + dX,
-                  (typeof item1.Z === 'number' ? item1.Z : item0.Z) + dZ,
-                  (typeof item1.Y === 'number' ? item1.Y : item0.Y) + dY
-               ));
-            }
-
-            if (elem.FORWARD === null) {
-               if (subTypes.indexOf('toolingFast') === -1) subTypes.push('toolingFast');
-               mode = 'toolingFast';
-               paths.push({path: path, subType: 'toolingFast'});
-               path = [new BABYLON.Vector3(x, y, z)];
-
-            } else if (elem.KNR && mode !== 'knurling') {
-               if (subTypes.indexOf('knurling') === -1) subTypes.push('knurling');
-               mode = 'knurling';
-               paths.push({path: path, subType: 'knurling'});
-               path = [new BABYLON.Vector3(x, y, z)];
-
-            } else if (elem.TRD && mode !== 'threading') {
-               if (subTypes.indexOf('threading') === -1) subTypes.push('threading');
-               mode = 'threading';
-               paths.push({path: path, subType: 'threading'});
-               path = [new BABYLON.Vector3(x, y, z)];
-
-            } else if (!elem.PATH) {
-               mode = 'default';
-               if (split) {
-                  paths.push({path: path});
-                  path = [new BABYLON.Vector3(x, y, z)];
-               }
-            }
-         }
-      });
-
-      if (!split) paths.push({path: path});
-
-      return {paths: paths, points: points, subTypes: subTypes};
-   }
-
-   function _positionPrimitiveMesh (mesh, primitive) {
-      if (primitive.transformation) {
-         var transformation = _transformationMatrixToAxisAngle(primitive.transformation);
-         mesh.rotate(transformation.vector, transformation.angle, BABYLON.Space.WORLD);
-      }
-
-      if (primitive.offset) {
-         var offset = new BABYLON.Vector3.FromArray(primitive.offset);
-         mesh.translate(offset, 1, BABYLON.Space.WORLD);
-      }
    }
 
    function _transformationMatrixToAxisAngle (matrix) {
@@ -331,14 +229,6 @@ app.factory('bGraphicFactory', [function () {
    }
 
    /* ----------- external functions --------- */
-   function _basicOffsetAdd (basicOffset, offset) {
-      basicOffset[0] += offset[0];
-      basicOffset[1] += offset[1];
-      basicOffset[2] += offset[2];
-
-      return basicOffset;
-   }
-
    function _getRadiusPoints (start, end, center, clockwise, options) {
       options = options || {};
 
@@ -377,49 +267,6 @@ app.factory('bGraphicFactory', [function () {
       }
 
       return coordinates;
-   }
-
-   function _offsetPaths (paths, offset) {
-      paths.forEach(function (path) {
-         path.forEach(function (element) {
-            if ('L' in element) {
-               if ('X' in element.L) element.L.X += offset[0];
-               if ('Y' in element.L) element.L.Y += offset[1];
-               if ('Z' in element.L) element.L.Z += offset[2];
-            }
-
-            if ('C' in element) {
-               if ('X' in element.C) element.C.X += offset[0];
-               if ('Y' in element.C) element.C.Y += offset[1];
-               if ('Z' in element.C) element.C.Z += offset[2];
-            }
-
-            if ('CC' in element) {
-               if ('X' in element.CC) element.CC.X += offset[0];
-               if ('Y' in element.CC) element.CC.Y += offset[1];
-               if ('Z' in element.CC) element.CC.Z += offset[2];
-            }
-         });
-      });
-
-      return paths;
-   }
-
-   function _offsetShape (shape, vector3offset, clone) {
-      if (clone) {
-         var newShape = [];
-
-         shape.forEach(function (vector3) {
-            newShape.push(vector3.clone().add(vector3offset));
-         });
-
-         return newShape;
-
-      } else {
-         shape.forEach(function (vector3) {
-            vector3.add(vector3offset);
-         });
-      }
    }
 
    function _paintView (engine, scene, data, click, ctrlClick) {
@@ -510,358 +357,83 @@ app.factory('bGraphicFactory', [function () {
          groups['G' + group.id] = {node: CoT, meshes: {}};
       });
 
-      var materialSelectable = new BABYLON.StandardMaterial('selectable', scene);
-      materialSelectable.diffuseColor = types.selectable.diffuseColor;
-      materialSelectable.color = types.selectable.diffuseColor;
-      materialSelectable.alpha = types.selectable.alpha || 1;
-      materialSelectable.backFaceCulling = true;
-
-      var materialSelected = new BABYLON.StandardMaterial('selected', scene);
-      materialSelected.diffuseColor = types.selected.diffuseColor;
-      materialSelected.color = types.selected.diffuseColor;
-      materialSelected.alpha = types.selected.alpha || 1;
-      materialSelected.backFaceCulling = true;
-
       dataItems.forEach(function (item, $index) {
          item.group = item.group || 0;
          item.offset = item.offset || [0, 0, 0];
          item.transformation = item.transformation || [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
 
-         var materialMulti = new BABYLON.MultiMaterial(item.type, scene);
-
-         var addMeshes = [];
-         var subtractMeshes = [];
-         var addCSG, subtractCSG;
-         var resultingMesh;
-         var outlines = [];
-         var lines = [];
-
-         item.primitives.forEach(function (primitive, i) {
-            var shape;
-
-            if (['freeForm', 'freeFormOutline'].indexOf(primitive.shape) !== -1) {
-               shape = {
-                  paths: [{}],
-                  subTypes: ['default']
-               };
-
-            } else {
-               shape = _getShape(
-                  primitive.path,
-                  [0, 0, 0],
-                  primitive.shape !== 'extrusion'
-               );
-            }
-
-            var materialType = types[item.type];
-
-            if (shape.subTypes.indexOf('default') !== -1) {
-               var material = new BABYLON.StandardMaterial(i, scene);
-               material.label = i;
-               material.diffuseColor = materialType.diffuseColor;
-               material.color = materialType.color;
-               material.alpha = materialType.alpha || 1;
-               material.backFaceCulling = true;
-
-               materialMulti.subMaterials.push(material);
-            }
-
-            if (shape.subTypes.indexOf('toolingFast') !== -1) {
-               var materialFast = new BABYLON.StandardMaterial(i + '_toolingFast', scene);
-               materialFast.label = i;
-               materialFast.diffuseColor = types.toolingFast.diffuseColor;
-               materialFast.color = types.toolingFast.color;
-
-               materialMulti.subMaterials.push(materialFast);
-            }
-
-            if (shape.subTypes.indexOf('knurling') !== -1) {
-               var materialKnurling = new BABYLON.StandardMaterial(i + '_knurling', scene);
-               materialKnurling.label = i;
-               materialKnurling.diffuseColor = types.knurling.diffuseColor;
-               materialKnurling.color = types.knurling.color;
-
-               materialMulti.subMaterials.push(materialKnurling);
-            }
-
-            if (shape.subTypes.indexOf('threading') !== -1) {
-               var materialThreading = new BABYLON.StandardMaterial(i + '_threading', scene);
-               materialThreading.label = i;
-               materialThreading.diffuseColor = types.threading.diffuseColor;
-               materialThreading.color = types.threading.color;
-
-               materialMulti.subMaterials.push(materialThreading);
-            }
-
-            if (primitive.shape === 'rotational') {
-               shape.points.forEach(function (point) {
-                  var path = [];
-                  for (var theta = 0; theta < 2 * Math.PI; theta += RAD_RESOLUTION) {
-                     path.push(new BABYLON.Vector3(
-                        point.x * Math.cos(theta),
-                        point.x * Math.sin(theta),
-                        point.z
-                     ));
-                  }
-
-                  var line = BABYLON.Mesh.CreateLines(
-                     (item.id === undefined ? 'Path_' + $index : item.id),
-                     path,
-                     scene
-                  );
-
-                  line.enableEdgesRendering();
-                  line.edgesWidth = 10;
-                  line.edgesColor = materialType.lineColor;
-                  // if (material.color) line.color = material.color;
-
-                  if (primitive.transformation) {
-                     var transformation = _transformationMatrixToAxisAngle(primitive.transformation);
-                     line.rotate(transformation.vector, transformation.angle, BABYLON.Space.WORLD);
-                  }
-
-                  if (primitive.offset) {
-                     line.translate(
-                        new BABYLON.Vector3.FromArray(primitive.offset),
-                        1,
-                        BABYLON.Space.WORLD
-                     );
-                  }
-
-                  outlines.push(line);
-               });
-            }
-
-            shape.paths.forEach(function (path) {
-               if (primitive.shape !== 'freeForm' && path.length < 2) return;
-
-               var primitiveMesh;
-
-               if (primitive.shape === 'rotational') {
-                  primitiveMesh = BABYLON.MeshBuilder.CreateLathe(
-                     'Rotation_' + $index,
-                     {shape: path.path, tessellation: 30}
-                  );
-
-               } else if (primitive.shape === 'extrusion') {
-                  primitiveMesh = BABYLON.MeshBuilder.ExtrudeShape(
-                     'Extrusion_' + $index,
-                     {
-                        shape: path.path,
-                        path: [
-                           new BABYLON.Vector3(0, 0, 0),
-                           new BABYLON.Vector3(0, 0, primitive.extrusion)
-                        ],
-                        cap: BABYLON.Mesh.CAP_ALL
-                     }
-                  );
-
-               } else if (primitive.shape === 'freeForm') {
-                  primitiveMesh = new BABYLON.Mesh('FreeForm_' + $index, scene);
-                  var normals = [];
-                  var vertexData = new BABYLON.VertexData();
-                  BABYLON.VertexData.ComputeNormals(
-                     primitive.positions,
-                     primitive.indices,
-                     normals
-                  );
-
-                  vertexData.positions = primitive.positions;
-                  vertexData.indices = primitive.indices;
-                  vertexData.normals = normals;
-                  vertexData.uvs = [];
-                  vertexData.applyToMesh(primitiveMesh, true);
-
-               } else if (primitive.shape === 'freeFormOutline') {
-                  primitive.indices.forEach(function (indice, $primitiveIndex) {
-                     var points = [];
-                     indice.forEach(function (index) {
-                        points.push(new BABYLON.Vector3(
-                           primitive.positions[3 * index],
-                           primitive.positions[3 * index + 1],
-                           primitive.positions[3 * index + 2]
-                        ));
-                     });
-
-                     var outline = BABYLON.MeshBuilder.CreateLines(
-                        'FreeFormOutline_' + $index + '_' + $primitiveIndex,
-                        {points: points},
-                        scene
-                     );
-
-                     outline.enableEdgesRendering();
-                     outline.edgesWidth = 10;
-                     outline.edgesColor = materialType.lineColor;
-
-                     _positionPrimitiveMesh(outline, primitive);
-
-                     outlines.push(outline);
-                  });
-
-               } else {
-                  var line = BABYLON.Mesh.CreateLines(
-                     (item.id === undefined ? 'Path_' + $index : item.id),
-                     path.path,
-                     scene
-                  );
-                  line.rotate(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
-
-                  if (path.subType === 'toolingFast') {
-                     line.color = materialFast.color;
-
-                  } else {
-                     if (material.color) line.color = material.color;
-                  }
-
-                  _positionPrimitiveMesh(line, primitive);
-
-                  lines.push(line);
-               }
-
-               if (!primitiveMesh) return;
-
-               if (primitive.boolean === 'add' || !primitive.boolean) {
-                  addMeshes.push(primitiveMesh);
-
-               } else if (primitive.boolean === 'subtract') {
-                  subtractMeshes.push(primitiveMesh);
-               }
-
-               if (path.subType === 'knurling') {
-                  primitiveMesh.material = materialKnurling;
-
-               } else if (path.subType === 'threading') {
-                  primitiveMesh.material = materialThreading;
-
-               } else {
-                  primitiveMesh.material = material;
-               }
-
-               // primitiveMesh.material = material;
-               primitiveMesh.parent = groups['G' + item.group].node;
-
-               if (primitive.shape !== 'freeForm') {
-                  primitiveMesh.rotate(new BABYLON.Vector3(1, 0, 0), Math.PI / 2);
-               }
-
-               _positionPrimitiveMesh(primitiveMesh, primitive);
-            });
-         });
-
-         materialMulti.subMaterials.push(materialSelectable);
-         materialMulti.subMaterials.push(materialSelected);
-
-         if (addMeshes.length > 0) {
-            var addMesh = BABYLON.Mesh.MergeMeshes(addMeshes,
-               true,
-               true,
-               undefined,
-               true,
-               true
-            );
-
-            addCSG = BABYLON.CSG.FromMesh(addMesh);
-            addMesh.dispose();
-         }
-
-         if (subtractMeshes.length > 0) {
-            var subtractMesh = BABYLON.Mesh.MergeMeshes(subtractMeshes,
-               true,
-               true,
-               undefined,
-               true,
-               true
-            );
-
-            subtractCSG = BABYLON.CSG.FromMesh(subtractMesh);
-            subtractMesh.dispose();
-         }
-
-         if (addCSG && subtractCSG) {
-            addCSG.subtractInPlace(subtractCSG);
-
-            resultingMesh = addCSG.toMesh('Item' + $index, materialMulti, scene, true);
-
-         } else if (addCSG) {
-            resultingMesh = addCSG.toMesh('Item' + $index, materialMulti, scene, true);
-         }
-
          var itemTransformation = _transformationMatrixToAxisAngle(item.transformation);
          var itemOffset = new BABYLON.Vector3.FromArray(item.offset);
 
-         if (resultingMesh) {
-            var materialsNumber = materialMulti.subMaterials.length;
+         item.primitives.forEach(function (primitive, i) {
+            var materialType = types[item.type];
+            var mesh;
 
-            resultingMesh.subMeshes.forEach(function (subMesh) {
-               var index = subMesh.materialIndex;
-               var material = materialMulti.getSubMaterial(index);
-               var primitive = item.primitives[material.label];
-
-               if (primitive.selectable) {
-                  subMesh.selectable = true;
-                  subMesh.camAttributes = primitive.attributes;
-                  subMesh.materialDefault = subMesh.materialIndex;
-
-                  _setSelected(data.selected, subMesh, materialsNumber);
-               }
-            });
-
-            // resultingMesh.forceSharedVertices();
-            resultingMesh.parent = groups['G' + item.group].node;
-            resultingMesh.renderingGroupId = 0;
-
-            resultingMesh.rotate(
-               itemTransformation.vector,
-               itemTransformation.angle,
-               BABYLON.Space.WORLD
-            );
-
-            resultingMesh.translate(itemOffset, 1, BABYLON.Space.WORLD);
-
-            outlines.forEach(function (outline) {
-               outline.parent = groups['G' + item.group].node;
-               outline.rotate(
-                  itemTransformation.vector,
-                  itemTransformation.angle,
-                  BABYLON.Space.WORLD
+            if (primitive.shape === 'freeForm') {
+               var normals = [];
+               BABYLON.VertexData.ComputeNormals(
+                  primitive.positions,
+                  primitive.indices,
+                  normals
                );
 
-               outline.translate(itemOffset, 1, BABYLON.Space.WORLD);
-            });
+               var vertexData = new BABYLON.VertexData();
+               vertexData.positions = primitive.positions;
+               vertexData.indices = primitive.indices;
+               vertexData.normals = normals;
+               vertexData.uvs = [];
 
-            groups['G' + item.group].meshes[resultingMesh.id] = resultingMesh;
-         }
+               mesh = new BABYLON.Mesh('FreeForm_' + $index, scene);
+               vertexData.applyToMesh(mesh, true);
 
-         outlines.forEach(function (outline) {
-            outline.parent = groups['G' + item.group].node;
-            outline.renderingGroupId = 3;
+               mesh.material = types[item.type].material;
+               mesh.selectable = true;
+               mesh.camAttributes = primitive.attributes;
 
-            outline.rotate(
-               itemTransformation.vector,
-               itemTransformation.angle,
-               BABYLON.Space.WORLD
-            );
+               mesh.parent = groups['G' + item.group].node;
+               mesh.renderingGroupId = 0;
 
-            outline.translate(itemOffset, 1, BABYLON.Space.WORLD);
+               mesh.rotate(itemTransformation.vector, itemTransformation.angle, BABYLON.Space.WORLD);
+               mesh.translate(itemOffset, 1, BABYLON.Space.WORLD);
 
-            groups['G' + item.group].meshes['Item' + $index] = outline;
+               groups['G' + item.group].meshes[mesh.name] = mesh;
+
+            } else if (primitive.shape === 'freeFormOutline') {
+               primitive.lines.forEach(function (line, $primitiveIndex) {
+                  var points = [];
+                  line.indices.forEach(function (index) {
+                     points.push(new BABYLON.Vector3(
+                        primitive.positions[3 * index],
+                        primitive.positions[3 * index + 1],
+                        primitive.positions[3 * index + 2]
+                     ));
+                  });
+
+                  var tmpType = (line.type ? materialType[line.type] : materialType);
+
+                  mesh = BABYLON.MeshBuilder.CreateLines(
+                     'FreeFormOutline_' + $index + '_' + $primitiveIndex,
+                     {
+                        points: points,
+                        colors: Array(points.length).fill(tmpType.lineColor)
+                     },
+                     scene
+                  );
+
+                  mesh.enableEdgesRendering();
+                  mesh.edgesWidth = tmpType.lineWidth;
+                  mesh.edgesColor = tmpType.lineColor;
+
+                  mesh.parent = groups['G' + item.group].node;
+                  mesh.renderingGroupId = 3;
+
+                  mesh.rotate(itemTransformation.vector, itemTransformation.angle, BABYLON.Space.WORLD);
+                  mesh.translate(itemOffset, 1, BABYLON.Space.WORLD);
+
+                  groups['G' + item.group].meshes[mesh.name] = mesh;
+               });
+            }
          });
-
-         lines.forEach(function (line) {
-            line.parent = groups['G' + item.group].node;
-            line.renderingGroupId = 3;
-
-            line.rotate(
-               itemTransformation.vector,
-               itemTransformation.angle,
-               BABYLON.Space.WORLD
-            );
-
-            line.translate(itemOffset, 1, BABYLON.Space.WORLD);
-
-            groups['G' + item.group].meshes['Item' + $index] = line;
-         });
-
       });
 
       return groups;
@@ -921,7 +493,7 @@ app.factory('bGraphicFactory', [function () {
 
             var stencilPlane = BABYLON.MeshBuilder.CreatePlane('stencilPlane', {width: dx, height: dz}, scene);
             stencilPlane.parent = group.node;
-            stencilPlane.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+            // stencilPlane.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
             stencilPlane.material = stencilPlaneMaterial;
             stencilPlane.position.set(mesh.position.x, mesh.position.y, boundingBox.maximum.z - dz / 2 + mesh.position.z);
             stencilPlane.isPickable = false;
