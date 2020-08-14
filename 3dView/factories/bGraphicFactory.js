@@ -24,8 +24,8 @@ app.factory('bGraphicFactory', [function () {
                material: (function () {
                   var mat = new BABYLON.StandardMaterial('contourFinish', scene);
                   mat.diffuseColor = BABYLON.Color3.Gray();
-                  mat.alpha = 1;
                   mat.backFaceCulling = true;
+                  // mat.wireframe = true;
 
                   return mat;
                }()),
@@ -38,6 +38,7 @@ app.factory('bGraphicFactory', [function () {
                   mat.diffuseColor = BABYLON.Color3.Blue();
                   mat.alpha = 0.2;
                   mat.backFaceCulling = true;
+                  // mat.wireframe = true;
 
                   return mat;
                }()),
