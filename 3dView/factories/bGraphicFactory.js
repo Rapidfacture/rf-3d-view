@@ -2,13 +2,11 @@
 
 app.factory('bGraphicFactory', [function () {
    var TOLERANCE = 1e-12;
-   var RAD_RESOLUTION = 0.209438;
 
    var types = {};
    var groups = {};
 
    var Services = {
-      getRadiusPoints: _getRadiusPoints,
       paintView: _paintView,
       sliceView: _sliceView,
       showAxis: _showAxis,
@@ -92,47 +90,6 @@ app.factory('bGraphicFactory', [function () {
 
 
    /* ----------- internal functions --------- */
-   function _getAngle (center, point) {
-      var a, b, c, factor, rawAngle;
-
-      a = point.x - center.x;
-      b = point.y - center.y;
-      c = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
-
-      if (Math.abs(a) < Math.abs(b)) {
-         if (a / c > 1 && a / c < 1 + TOLERANCE) {
-            factor = 1;
-
-         } else if (a / c < -1 && a / c > -1 - TOLERANCE) {
-            factor = -1;
-
-         } else {
-            factor = a / c;
-         }
-
-         rawAngle = Math.asin(factor);
-
-         if (b < 0) rawAngle = Math.PI - rawAngle;
-
-      } else {
-         if (b / c > 1 && b / c < 1 + TOLERANCE) {
-            factor = 1;
-
-         } else if (b / c < -1 && b / c > -1 - TOLERANCE) {
-            factor = -1;
-
-         } else {
-            factor = b / c;
-         }
-
-         rawAngle = Math.acos(factor);
-
-         if (a < 0) rawAngle = -rawAngle;
-      }
-
-      return {angle: rawAngle % (2 * Math.PI), radius: c};
-   }
-
    function _transformationMatrixToAxisAngle (matrix) {
       // https://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToAngle/index.htm
 
@@ -230,46 +187,6 @@ app.factory('bGraphicFactory', [function () {
    }
 
    /* ----------- external functions --------- */
-   function _getRadiusPoints (start, end, center, clockwise, options) {
-      options = options || {};
-
-      var coordinates = [];
-      var startAngle, endAngle, steps, dAngle, radius;
-
-      if (options.addStart) coordinates.push(new BABYLON.Vector3(start.x, start.y, start.z));
-
-      end = _getAngle(center, end);
-      start = _getAngle(center, start);
-
-      startAngle = start.angle;
-      endAngle = end.angle;
-
-      radius = (start.radius + end.radius) / 2;
-
-      if (clockwise) {
-         while (endAngle < startAngle) endAngle += (2 * Math.PI);
-      } else {
-         while (startAngle < endAngle) startAngle += (2 * Math.PI);
-      }
-
-      if (Math.abs(startAngle - endAngle) < TOLERANCE) startAngle += Math.PI * 2;
-
-      steps = options.nodes || Math.ceil(Math.abs((startAngle - endAngle) / RAD_RESOLUTION));
-      dAngle = (startAngle - endAngle) / steps;
-
-      for (var j = 0; j < steps; j++) {
-         var angle = startAngle - (j + 1) * dAngle;
-
-         coordinates.push(new BABYLON.Vector3(
-            center.x + Math.sin(angle) * radius,
-            center.y + Math.cos(angle) * radius,
-            0
-         ));
-      }
-
-      return coordinates;
-   }
-
    function _paintView (engine, scene, data, click, ctrlClick) {
       if (!data || !data.items) return;
 
@@ -534,7 +451,8 @@ app.factory('bGraphicFactory', [function () {
       var CoT = new BABYLON.TransformNode(groupId, scene);
       CoT.parent = node;
       CoT.translate(translation, BABYLON.Space.LOCAL);
-      CoT.rotate(rotation.vector, rotation.angle);
+
+      if (rotation) CoT.rotate(rotation.vector, rotation.angle);
 
       var isPickable = (options.isPickable === undefined ? true : options.isPickable);
       var size = options.size || 5;

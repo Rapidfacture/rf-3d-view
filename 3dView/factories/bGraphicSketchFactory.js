@@ -1,6 +1,6 @@
 // main application data; stores json drawing (geometry, features, metaData); stack for undo/redo
 
-app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFactory) {
+app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraphicGeneralFactory) {
    var Services = {
       addConstraintToGrid: _addConstraintToGrid,
       addDimensionToGrid: _addDimensionToGrid,
@@ -559,7 +559,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicFactory', function (bGraphicFacto
    }
 
    function _addRadiusToGrid (grid, start, end, center, clockwise, name, options, scene) {
-      var coordinates = bGraphicFactory.getRadiusPoints(start, end, center, clockwise, {nodes: 72, addStart: true});
+      var coordinates = bGraphicGeneralFactory.getRadiusPoints(start, end, center, clockwise, {nodes: 72, addStart: true});
       var radius;
       var scaleFactor = options.scaleFactor || 1;
 
