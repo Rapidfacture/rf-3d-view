@@ -672,14 +672,14 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       return line;
    }
 
-   function _generatePaths (items) {
+   function _generatePaths (basicElements) {
       var proceeded = [];
       var paths = [];
 
-      for (var k in items) {
-         if (items[k].class === 'basicElement' && proceeded.indexOf(items[k]) === -1) {
+      basicElements.forEach(function (element) {
+         if (proceeded.indexOf(element) === -1) {
             var newPath = true;
-            var partnerPoint = items[k].end;
+            var partnerPoint = element.end;
             var partnerElement = partnerPoint.getPartnerElement();
             var path = [partnerElement];
 
@@ -699,7 +699,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
 
             paths.push(path);
          }
-      }
+      });
 
       return paths;
    }
