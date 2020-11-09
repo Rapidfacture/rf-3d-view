@@ -4,6 +4,7 @@ app.factory('bGraphicGeneralFactory', [function () {
 
    var Services = {
       getRadiusPoints: _getRadiusPoints,
+      getTextPlaneProperties: _getTextPlaneProperties,
       pathSortInPlace: _pathSortInPlace
    };
 
@@ -88,6 +89,37 @@ app.factory('bGraphicGeneralFactory', [function () {
       return coordinates;
    }
 
+   function _getTextPlaneProperties (text) {
+      // Set height for plane
+      var planeHeight = 1;
+      var fontSize = 72;
+
+      // Set height for dynamic texture
+      var DTHeight = 1.2 * fontSize; // or set as wished
+
+      // Calcultae ratio
+      var ratio = planeHeight / DTHeight;
+      // Set font
+      var font = 'bold ' + fontSize + 'px Arial';
+      var temp = new BABYLON.DynamicTexture('DynamicTexture', 64);
+      var tmpctx = temp.getContext();
+      temp.dispose();
+      tmpctx.font = font;
+      var DTWidth = tmpctx.measureText(text).width + 8;
+
+      // Calculate width the plane has to be
+      var planeWidth = DTWidth * ratio;
+
+      return {
+         dtHeight: DTHeight,
+         dtWidth: DTWidth,
+         font: font,
+         fontSize: fontSize,
+         height: planeHeight,
+         text: text,
+         width: planeWidth
+      };
+   }
 
    function _pathSortInPlace (path) {
       // Presort, not accounting direction

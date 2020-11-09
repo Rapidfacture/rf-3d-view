@@ -1,6 +1,6 @@
 // main application data; stores json drawing (geometry, features, metaData); stack for undo/redo
 
-app.factory('bGraphicFactory', [function () {
+app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGeneralFactory) {
    var TOLERANCE = 1e-12;
 
    var types = {};
@@ -239,9 +239,7 @@ app.factory('bGraphicFactory', [function () {
          group.offset = group.offset || [0, 0, 0];
          group.transformation = group.transformation || [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
 
-         var offset = new BABYLON.Vector3.FromArray(group.offset);
          var CoT = new BABYLON.TransformNode(group.id, scene);
-         CoT.translate(offset, 1);
 
          // Check det=-1 of transformation matrix for mirroring
          var mergedArray = [];
@@ -258,6 +256,9 @@ app.factory('bGraphicFactory', [function () {
             group.transformation[2][2] = -group.transformation[2][2];
          }
 
+         var offset = new BABYLON.Vector3.FromArray(group.offset);
+         CoT.translate(offset, 1);
+
          var transformation = _transformationMatrixToAxisAngle(group.transformation);
          CoT.rotate(transformation.vector, transformation.angle);
 
@@ -269,7 +270,7 @@ app.factory('bGraphicFactory', [function () {
             var originOffset = new BABYLON.Vector3.FromArray(item.offset);
             var originTransformation = _transformationMatrixToAxisAngle(item.transformation);
 
-            _showAxis(group.id, CoT, originOffset, originTransformation, k, {size: 20}, scene);
+            _showAxis(group.id, CoT, originOffset, originTransformation, k, {size: 20, label: item.label}, scene);
          }
 
          groups['G' + group.id] = {node: CoT, meshes: {}};
@@ -434,23 +435,39 @@ app.factory('bGraphicFactory', [function () {
    // show axis
    function _showAxis (groupId, node, translation, rotation, name, options, scene) {
       // rotation not jet in use
-      var makeTextPlane = function (text, color) {
-         var dynamicTexture = new BABYLON.DynamicTexture('DynamicTexture', 50, scene, true);
-         dynamicTexture.hasAlpha = true;
-         dynamicTexture.drawText(text, 5, 50, 'bold 72px Arial', color, 'transparent', true);
+      var makeTextPlane = function (label, color) {
+         var text = bGraphicGeneralFactory.getTextPlaneProperties(label);
 
-         var plane = new BABYLON.Mesh.CreatePlane('TextPlane', size / 10, scene, true);
+         var plane = BABYLON.MeshBuilder.CreateGround(
+            'TextPlane',
+            {width: 1, height: 1, updateable: true},
+            scene,
+            true
+         );
+         plane.scaling.x = text.width;
+         plane.scaling.z = text.height;
+         plane.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+
+         var dynamicTexture = new BABYLON.DynamicTexture(
+            'DynamicTexture',
+            {width: text.dtWidth, height: text.dtHeight},
+            scene
+         );
+         dynamicTexture.hasAlpha = true;
+         dynamicTexture.drawText(text.text, null, null, text.font, 'white', 'transparent', true);
+
          plane.material = new BABYLON.StandardMaterial('TextPlaneMaterial', scene);
-         plane.material.backFaceCulling = false;
-         plane.material.specularColor = new BABYLON.Color3(0, 0, 0);
+         plane.material.diffuseColor = new BABYLON.Color3(0, 0, 0);
+         plane.material.emissiveColor = new BABYLON.Color3(0, 0, 0);
          plane.material.diffuseTexture = dynamicTexture;
+         plane.material.backFaceCulling = false;
 
          return plane;
       };
 
-      var CoT = new BABYLON.TransformNode(groupId, scene);
+      var CoT = new BABYLON.TransformNode(groupId + '_' + name, scene);
       CoT.parent = node;
-      CoT.translate(translation, BABYLON.Space.LOCAL);
+      CoT.translate(translation, 1);
 
       if (rotation) CoT.rotate(rotation.vector, rotation.angle);
 
@@ -540,6 +557,14 @@ app.factory('bGraphicFactory', [function () {
          result.zChar = zChar;
       }
 
+      if (options.label) {
+         var label = makeTextPlane(options.label, 'black');
+         label.isPickable = false;
+         label.renderingGroupId = 3;
+         label.parent = CoT;
+
+         result.label = label;
+      }
       return result;
    }
 

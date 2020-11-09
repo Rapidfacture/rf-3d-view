@@ -87,38 +87,6 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       return '' + diameter + dimValue + tolType + tolValue;
    }
 
-   function _getTextPlaneProperties (text) {
-      // Set height for plane
-      var planeHeight = 1;
-      var fontSize = 72;
-
-      // Set height for dynamic texture
-      var DTHeight = 1.2 * fontSize; // or set as wished
-
-      // Calcultae ratio
-      var ratio = planeHeight / DTHeight;
-      // Set font
-      var font = 'bold ' + fontSize + 'px Arial';
-      var temp = new BABYLON.DynamicTexture('DynamicTexture', 64);
-      var tmpctx = temp.getContext();
-      temp.dispose();
-      tmpctx.font = font;
-      var DTWidth = tmpctx.measureText(text).width + 8;
-
-      // Calculate width the plane has to be
-      var planeWidth = DTWidth * ratio;
-
-      return {
-         dtHeight: DTHeight,
-         dtWidth: DTWidth,
-         font: font,
-         fontSize: fontSize,
-         height: planeHeight,
-         text: text,
-         width: planeWidth
-      };
-   }
-
    function _getDragAndDropBehavior (dragStartFunction, dragFunction, dragEndFunction) {
       dragEndFunction = dragEndFunction || function () {};
       dragFunction = dragFunction || function () {};
@@ -151,7 +119,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       var pointColorStandard = dimensionColors[options.status + 'Point'];
 
       if (options.registerActions) {
-         var text = _getTextPlaneProperties(_getText(dimension));
+         var text = bGraphicGeneralFactory.getTextPlaneProperties(_getText(dimension));
 
          var subMeshes = [];
 
@@ -672,14 +640,14 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       return line;
    }
 
-   function _generatePaths (basicElements) {
+   function _generatePaths (items) {
       var proceeded = [];
       var paths = [];
 
-      basicElements.forEach(function (element) {
-         if (proceeded.indexOf(element) === -1) {
+      for (var k in items) {
+         if (items[k].class === 'basicElement' && proceeded.indexOf(items[k]) === -1) {
             var newPath = true;
-            var partnerPoint = element.end;
+            var partnerPoint = items[k].end;
             var partnerElement = partnerPoint.getPartnerElement();
             var path = [partnerElement];
 
@@ -699,7 +667,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
 
             paths.push(path);
          }
-      });
+      }
 
       return paths;
    }
@@ -854,7 +822,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       }
 
       if (options.label) {
-         var text = _getTextPlaneProperties(_getText(options.label));
+         var text = bGraphicGeneralFactory.getTextPlaneProperties(_getText(options.label));
 
          var texture = new BABYLON.DynamicTexture(
             elements[1].material.diffuseTexture.name,
