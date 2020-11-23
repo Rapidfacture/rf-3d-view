@@ -239,7 +239,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
          group.offset = group.offset || [0, 0, 0];
          group.transformation = group.transformation || [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
 
-         var CoT = new BABYLON.TransformNode(group.id, scene);
+         var groupNode = new BABYLON.TransformNode(group.id, scene);
 
          // Check det=-1 of transformation matrix for mirroring
          var mergedArray = [];
@@ -252,17 +252,17 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
 
          var bMatrix = new BABYLON.Matrix.FromArray(mergedArray);
          if (Math.abs(bMatrix.determinant() + 1) < TOLERANCE) {
-            CoT.scaling = new BABYLON.Vector3.FromArray([1, 1, -1]);
+            groupNode.scaling = new BABYLON.Vector3.FromArray([1, 1, -1]);
             group.transformation[2][2] = -group.transformation[2][2];
          }
 
          var offset = new BABYLON.Vector3.FromArray(group.offset);
-         CoT.translate(offset, 1);
+         groupNode.translate(offset, 1);
 
          var transformation = _transformationMatrixToAxisAngle(group.transformation);
-         CoT.rotate(transformation.vector, transformation.angle);
+         groupNode.rotate(transformation.vector, transformation.angle);
 
-         _showAxis(group.id, CoT, BABYLON.Vector3.Zero(), transformation, 'machine', {size: 20}, scene);
+         _showAxis(group.id, groupNode, BABYLON.Vector3.Zero(), transformation, 'machine', {size: 20}, scene);
 
          for (var k in group.origin) {
             var item = group.origin[k];
@@ -270,10 +270,10 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
             var originOffset = new BABYLON.Vector3.FromArray(item.offset);
             var originTransformation = _transformationMatrixToAxisAngle(item.transformation);
 
-            _showAxis(group.id, CoT, originOffset, originTransformation, k, {size: 20, label: item.label}, scene);
+            _showAxis(group.id, groupNode, originOffset, originTransformation, k, {size: 20, label: item.label}, scene);
          }
 
-         groups['G' + group.id] = {node: CoT, meshes: {}};
+         groups['G' + group.id] = {node: groupNode, meshes: {}};
       });
 
       dataItems.forEach(function (item, $index) {
@@ -284,7 +284,17 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
          var itemTransformation = _transformationMatrixToAxisAngle(item.transformation);
          var itemOffset = new BABYLON.Vector3.FromArray(item.offset);
 
+         var itemNode = new BABYLON.TransformNode('Item_' + $index, scene);
+         itemNode.parent = groups['G' + item.group].node;
+         itemNode.translate(itemOffset, 1);
+         itemNode.rotate(itemTransformation.vector, itemTransformation.angle);
+
          item.primitives.forEach(function (primitive, i) {
+            primitive.offset = primitive.offset || [0, 0, 0];
+            primitive.transformation = primitive.transformation || [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+
+            var primitiveTransformation = _transformationMatrixToAxisAngle(primitive.transformation);
+            var primitiveOffset = new BABYLON.Vector3.FromArray(primitive.offset);
             var materialType = types[item.type];
             var mesh;
 
@@ -302,18 +312,18 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                vertexData.normals = normals;
                vertexData.uvs = [];
 
-               mesh = new BABYLON.Mesh('FreeForm_' + $index, scene);
+               mesh = new BABYLON.Mesh('FreeForm_' + $index + '_' + i, scene);
                vertexData.applyToMesh(mesh, true);
 
                mesh.material = types[item.type].material;
                mesh.selectable = true;
                mesh.camAttributes = primitive.attributes;
 
-               mesh.parent = groups['G' + item.group].node;
+               mesh.parent = itemNode;
                mesh.renderingGroupId = 0;
 
-               mesh.rotate(itemTransformation.vector, itemTransformation.angle, BABYLON.Space.WORLD);
-               mesh.translate(itemOffset, 1, BABYLON.Space.WORLD);
+               mesh.rotate(primitiveTransformation.vector, primitiveTransformation.angle, BABYLON.Space.WORLD);
+               mesh.translate(primitiveOffset, 1, BABYLON.Space.WORLD);
 
                groups['G' + item.group].meshes[mesh.name] = mesh;
 
@@ -331,7 +341,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                   var tmpType = (line.type ? materialType[line.type] : materialType);
 
                   mesh = BABYLON.MeshBuilder.CreateLines(
-                     'FreeFormOutline_' + $index + '_' + $primitiveIndex,
+                     'FreeFormOutline_' + $index + '_' + i + '_' + $primitiveIndex,
                      {
                         points: points,
                         colors: Array(points.length).fill(tmpType.lineColor)
@@ -343,11 +353,11 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                   mesh.edgesWidth = tmpType.lineWidth;
                   mesh.edgesColor = tmpType.lineColor;
 
-                  mesh.parent = groups['G' + item.group].node;
+                  mesh.parent = itemNode;
                   mesh.renderingGroupId = 3;
 
-                  mesh.rotate(itemTransformation.vector, itemTransformation.angle, BABYLON.Space.WORLD);
-                  mesh.translate(itemOffset, 1, BABYLON.Space.WORLD);
+                  mesh.rotate(primitiveTransformation.vector, primitiveTransformation.angle, BABYLON.Space.WORLD);
+                  mesh.translate(primitiveOffset, 1, BABYLON.Space.WORLD);
 
                   groups['G' + item.group].meshes[mesh.name] = mesh;
                });
