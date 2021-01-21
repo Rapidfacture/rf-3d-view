@@ -30,6 +30,18 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1),
                lineWidth: 10
             },
+            contourProcessing: {
+               material: (function () {
+                  var mat = new BABYLON.StandardMaterial('contourProcessing', scene);
+                  mat.diffuseColor = BABYLON.Color3.Green();
+                  mat.alpha = 0.2;
+                  mat.backFaceCulling = true;
+
+                  return mat;
+               }()),
+               lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1),
+               lineWidth: 5
+            },
             contourRaw: {
                material: (function () {
                   var mat = new BABYLON.StandardMaterial('contourFinish', scene);
