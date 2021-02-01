@@ -83,7 +83,17 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                diffuseColor: BABYLON.Color3.Gray()
             },
             tool: {
-               diffuseColor: BABYLON.Color3.FromHexString('#f47721')
+               material: (function () {
+                  var mat = new BABYLON.StandardMaterial('contourFinish', scene);
+                  mat.diffuseColor = BABYLON.Color3.FromHexString('#f47721');
+                  mat.backFaceCulling = true;
+                  // mat.wireframe = true;
+
+                  return mat;
+
+               }()),
+               lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1),
+               lineWidth: 10
             },
             toolUndefined: {
                diffuseColor: BABYLON.Color3.Red()
