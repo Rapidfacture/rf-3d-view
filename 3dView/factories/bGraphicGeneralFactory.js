@@ -3,50 +3,19 @@ app.factory('bGraphicGeneralFactory', [function () {
    var RAD_RESOLUTION = 0.209438;
 
    var Services = {
+      getAngle: _getAngle,
       getRadiusPoints: _getRadiusPoints,
       getTextPlaneProperties: _getTextPlaneProperties,
       pathSortInPlace: _pathSortInPlace
    };
 
    function _getAngle (center, point) {
-      var a, b, c, factor, rawAngle;
+      var angle = Math.atan2(point.x - center.x, point.y - center.y);
 
-      a = point.x - center.x;
-      b = point.y - center.y;
-      c = Math.sqrt(Math.pow(a, 2) + Math.pow(b, 2));
+      while (angle < 0) { angle += 2 * Math.PI; }
+      while (angle >= 2 * Math.PI) { angle -= 2 * Math.PI; }
 
-      if (Math.abs(a) < Math.abs(b)) {
-         if (a / c > 1 && a / c < 1 + TOLERANCE) {
-            factor = 1;
-
-         } else if (a / c < -1 && a / c > -1 - TOLERANCE) {
-            factor = -1;
-
-         } else {
-            factor = a / c;
-         }
-
-         rawAngle = Math.asin(factor);
-
-         if (b < 0) rawAngle = Math.PI - rawAngle;
-
-      } else {
-         if (b / c > 1 && b / c < 1 + TOLERANCE) {
-            factor = 1;
-
-         } else if (b / c < -1 && b / c > -1 - TOLERANCE) {
-            factor = -1;
-
-         } else {
-            factor = b / c;
-         }
-
-         rawAngle = Math.acos(factor);
-
-         if (a < 0) rawAngle = -rawAngle;
-      }
-
-      return {angle: rawAngle % (2 * Math.PI), radius: c};
+      return { angle: angle, radius: point.subtract(center).length() };
    }
 
    function _getRadiusPoints (start, end, center, clockwise, options) {
