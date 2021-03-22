@@ -376,7 +376,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                   mesh.edgesColor = tmpType.lineColor;
 
                   mesh.parent = itemNode;
-                  mesh.renderingGroupId = 3;
+                  mesh.renderingGroupId = 0;
 
                   mesh.rotate(primitiveTransformation.vector, primitiveTransformation.angle, BABYLON.Space.WORLD);
                   mesh.translate(primitiveOffset, 1, BABYLON.Space.WORLD);
