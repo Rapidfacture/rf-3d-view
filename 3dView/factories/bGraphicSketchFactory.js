@@ -9,6 +9,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       addPointToGrid: _addPointToGrid,
       addRadiusToGrid: _addRadiusToGrid,
       addStraightToGrid: _addStraightToGrid,
+      addTextToGrid: _addTextToGrid,
       generatePaths: _generatePaths,
       getDimensionCoordinates: _getDimensionCoordinates,
       getDimensionRadiusCoordinates: _getDimensionRadiusCoordinates,
@@ -21,7 +22,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       updateDimension: _updateDimension,
       updateGrid: _updateGrid,
       updatePlane: _updatePlane,
-      updatePoint: _updatePoint
+      updatePoint: _updatePoint,
+      updateText: _updateText
    };
 
    var basicElementProperties = {
@@ -71,6 +73,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
    };
    var pointProperties = {
       offsetZ: -0.02
+   };
+   var textColors = {
+      defaultText: new BABYLON.Color3.Black(),
+      mouseOverText: new BABYLON.Color3.Red()
    };
 
    /* ----------- internal functions --------- */
@@ -560,6 +566,111 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       return line;
    }
 
+   function _addTextToGrid (grid, label, position, name, options, scene) {
+      var plane, dynamicTexture, node;
+      var textColorStandard = textColors[options.status + 'Text'];
+      var textColorMouseOver = textColors.mouseOverText;
+
+      if (options.registerActions) {
+         var text = bGraphicGeneralFactory.getTextPlaneProperties(label);
+         // console.log(text);
+
+         var subMeshes = [];
+
+         if (options.replacement) subMeshes = options.replacement.getChildMeshes();
+
+         plane = BABYLON.MeshBuilder.CreateGround(
+            (subMeshes[1] ? subMeshes[1].name : 'Text_plane_' + name),
+            {width: 1, height: 1, updateable: true},
+            scene,
+            true
+         );
+
+         plane.position.z = -0.01;
+         plane.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+         plane.renderingGroupId = 1;
+         plane.scaling.x = text.width;
+         plane.scaling.z = text.height;
+
+         dynamicTexture = new BABYLON.DynamicTexture(
+            'Text_label_' + name,
+            {width: text.dtWidth, height: text.dtHeight},
+            scene
+         );
+
+         // Create dynamic texture and write the text
+         dynamicTexture.hasAlpha = true;
+         dynamicTexture.drawText(text.text, null, null, text.font, 'white', 'transparent', true);
+
+         subMeshes.forEach(function (subMesh) {
+            subMesh.dispose();
+         });
+
+         // Create plane and set dynamic texture as material
+         plane.material = new BABYLON.StandardMaterial('mat', scene);
+         plane.material.diffuseColor = textColorStandard;
+         plane.material.emissiveColor = textColorStandard;
+         plane.material.diffuseTexture = dynamicTexture;
+
+         plane.material.backFaceCulling = false;
+
+         var planeActions = [
+            new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, plane.material, 'diffuseColor', textColorStandard),
+            new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, plane.material, 'emissiveColor', textColorStandard),
+            new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, plane.material, 'diffuseColor', textColorMouseOver),
+            new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, plane.material, 'emissiveColor', textColorMouseOver)
+         ];
+
+         if (grid) {
+            planeActions.push(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable', true));
+            planeActions.push(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable', false));
+         }
+
+         plane.actionManager = new BABYLON.ActionManager(scene);
+         planeActions.forEach(function (action) {
+            plane.actionManager.registerAction(action);
+         });
+
+         if (options.replacement) {
+            node = options.replacement;
+
+         } else {
+            node = new BABYLON.TransformNode('Text_' + name, scene);
+         }
+
+         plane.parent = node;
+
+         node.position = position;
+
+         if (options.dragAndDrop) {
+            node.addBehavior(
+               _getDragAndDropBehavior(
+                  options.dragStartFunction,
+                  options.dragFunction,
+                  options.dragEndFunction
+               )
+            );
+         }
+
+         return node;
+
+      } else {
+         var existingMeshes = options.replacement.getChildMeshes();
+
+         BABYLON.MeshBuilder.CreateGround(
+            existingMeshes[2].name,
+            {width: 0.2, height: 0.2, updateable: true},
+            scene,
+            !options.replacement,
+            existingMeshes[2]
+         );
+
+         options.replacement.position = position;
+
+         return options.replacement;
+      }
+   }
+
    function _generatePaths (items) {
       var proceeded = [];
       var paths = [];
@@ -901,6 +1012,47 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
 
       if (typeof options.dragAndDrop === 'boolean') {
          if (point.behaviors.length === 1) point.behaviors[0].enabled = options.dragAndDrop;
+      }
+   }
+
+   function _updateText (text, options) {
+      if (!text) return;
+
+      var elements = text.getChildren();
+
+      if (options.status) {
+         var colorText = dimensionColors[options.status + 'Text'];
+
+         elements[0].material.diffuseColor = colorText;
+         elements[0].material.emissiveColor = colorText;
+
+         if (elements[0].actionManager) {
+            elements[0].actionManager.actions[0].value = colorText;
+            elements[0].actionManager.actions[1].value = colorText;
+         }
+      }
+
+      if (options.textIsPickable !== undefined) {
+         elements[1].isPickable = options.textIsPickable;
+      }
+
+      if (options.label) {
+         var label = bGraphicGeneralFactory.getTextPlaneProperties(options.label);
+
+         var texture = new BABYLON.DynamicTexture(
+            elements[0].material.diffuseTexture.name,
+            {width: label.dtWidth, height: label.dtHeight},
+            text.scene
+         );
+
+         elements[0].scaling.x = label.width;
+         elements[0].scaling.z = label.height;
+
+         // Create dynamic texture and write the text
+         texture.hasAlpha = true;
+         texture.drawText(label.text, null, null, label.font, 'white', 'transparent', true);
+
+         elements[0].material.diffuseTexture = texture;
       }
    }
 
