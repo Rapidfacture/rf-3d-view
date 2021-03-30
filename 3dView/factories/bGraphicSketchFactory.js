@@ -75,8 +75,9 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       offsetZ: -0.02
    };
    var textColors = {
-      defaultText: new BABYLON.Color3.Black(),
-      mouseOverText: new BABYLON.Color3.Red()
+      defaultText: new BABYLON.Color3.Gray(),
+      mouseOverText: new BABYLON.Color3.Red(),
+      selectedText: new BABYLON.Color3.Red()
    };
 
    /* ----------- internal functions --------- */
@@ -573,8 +574,6 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
 
       if (options.registerActions) {
          var text = bGraphicGeneralFactory.getTextPlaneProperties(label);
-         // console.log(text);
-
          var subMeshes = [];
 
          if (options.replacement) subMeshes = options.replacement.getChildMeshes();
@@ -588,6 +587,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
 
          plane.position.z = -0.01;
          plane.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+         plane.isPickable = options.isPickable;
          plane.renderingGroupId = 1;
          plane.scaling.x = text.width;
          plane.scaling.z = text.height;
@@ -1020,8 +1020,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
 
       var elements = text.getChildren();
 
+      if (elements.length === 0) return;
+
       if (options.status) {
-         var colorText = dimensionColors[options.status + 'Text'];
+         var colorText = textColors[options.status + 'Text'];
 
          elements[0].material.diffuseColor = colorText;
          elements[0].material.emissiveColor = colorText;
@@ -1032,8 +1034,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
          }
       }
 
-      if (options.textIsPickable !== undefined) {
-         elements[1].isPickable = options.textIsPickable;
+      if (options.isPickable !== undefined) {
+         elements[0].isPickable = options.isPickable;
       }
 
       if (options.label) {
