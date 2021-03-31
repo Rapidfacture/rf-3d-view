@@ -8,6 +8,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       addPlaneToGrid: _addPlaneToGrid,
       addPointToGrid: _addPointToGrid,
       addRadiusToGrid: _addRadiusToGrid,
+      addRectangleToGrid: _addRectangleToGrid,
       addStraightToGrid: _addStraightToGrid,
       addTextToGrid: _addTextToGrid,
       generatePaths: _generatePaths,
@@ -17,8 +18,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       showGrid: _showGrid,
       setPathDirection: _setPathDirection,
       start: _start,
-      updateBasicElement: _updateBasicElement,
       updateConstraint: _updateConstraint,
+      updateContourElement: _updateContourElement,
       updateDimension: _updateDimension,
       updateGrid: _updateGrid,
       updatePlane: _updatePlane,
@@ -567,6 +568,66 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       return line;
    }
 
+   function _addRectangleToGrid (grid, start, end, name, options, scene) {
+      var line;
+      var scaleFactor = options.scaleFactor || 1;
+
+      var colorDefault = basicElementColors[options.status];
+      var colorMouseOver = basicElementColors.mouseOver;
+
+      var point0 = new BABYLON.Vector3(end.x, start.y, start.z);
+      var point1 = new BABYLON.Vector3(start.x, end.y, start.z);
+
+      if (options.registerActions) {
+         if (options.replacement) options.replacement.dispose();
+
+         line = BABYLON.Mesh.CreateLines(
+            (options.replacement ? options.replacement.name : 'Straight_' + name),
+            [start, point0, end, point1, start],
+            scene,
+            true
+         );
+
+      } else {
+         line = BABYLON.Mesh.CreateLines(
+            'Straight_' + name,
+            [start, point0, end, point1, start],
+            scene,
+            !options.replacement,
+            options.replacement
+         );
+      }
+
+      line.position.z = basicElementProperties.offsetZ;
+      line.enableEdgesRendering();
+      line.edgesWidth = basicElementProperties.lineWidth * scaleFactor;
+      line.edgesColor = colorDefault;
+      line.isPickable = (options.isPickable === undefined ? true : options.isPickable);
+
+      if (options.dragAndDrop) {
+         line.addBehavior(
+            _getDragAndDropBehavior(
+               options.dragStartFunction,
+               options.dragFunction,
+               options.dragEndFunction
+            )
+         );
+      }
+
+      if (!options.registerActions) return line;
+
+      line.actionManager = new BABYLON.ActionManager(scene);
+      line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, line, 'edgesColor', line.edgesColor));
+      line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, line, 'edgesColor', colorMouseOver));
+
+      if (grid) {
+         line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable', true));
+         line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable', false));
+      }
+
+      return line;
+   }
+
    function _addTextToGrid (grid, label, position, name, options, scene) {
       var plane, dynamicTexture, node;
       var textColorStandard = textColors[options.status + 'Text'];
@@ -574,6 +635,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
 
       if (options.registerActions) {
          var text = bGraphicGeneralFactory.getTextPlaneProperties(label);
+         console.log(text);
          var subMeshes = [];
 
          if (options.replacement) subMeshes = options.replacement.getChildMeshes();
@@ -894,7 +956,10 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       // if (settings.grid) grid = settings.grid;
    }
 
-   function _updateBasicElement (basicElement, options) {
+   /*
+   * Can be used for basicElement and rectangle factory objects
+   * */
+   function _updateContourElement (basicElement, options) {
       if (options.status) {
          var color = basicElementColors[options.status];
 
