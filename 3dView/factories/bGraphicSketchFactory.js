@@ -18,8 +18,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       showGrid: _showGrid,
       setPathDirection: _setPathDirection,
       start: _start,
-      updateConstraint: _updateConstraint,
       updateContourElement: _updateContourElement,
+      updateConstraint: _updateConstraint,
       updateDimension: _updateDimension,
       updateGrid: _updateGrid,
       updatePlane: _updatePlane,
@@ -582,7 +582,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
          if (options.replacement) options.replacement.dispose();
 
          line = BABYLON.Mesh.CreateLines(
-            (options.replacement ? options.replacement.name : 'Straight_' + name),
+            (options.replacement ? options.replacement.name : 'Rectangle_' + name),
             [start, point0, end, point1, start],
             scene,
             true
@@ -590,7 +590,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
 
       } else {
          line = BABYLON.Mesh.CreateLines(
-            'Straight_' + name,
+            'Rectangle_' + name,
             [start, point0, end, point1, start],
             scene,
             !options.replacement,
@@ -738,27 +738,33 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       var paths = [];
 
       for (var k in items) {
-         if (items[k].class === 'basicElement' && proceeded.indexOf(items[k]) === -1) {
-            var newPath = true;
-            var partnerPoint = items[k].end;
-            var partnerElement = partnerPoint.getPartnerElement();
-            var path = [partnerElement];
+         if (proceeded.indexOf(items[k]) === -1) {
+            if (items[k].class === 'basicElement') {
+               var newPath = true;
+               var partnerPoint = items[k].end;
+               var partnerElement = partnerPoint.getPartnerElement();
+               var path = [partnerElement];
 
-            proceeded.push(partnerElement);
-
-            while (newPath || proceeded.indexOf(partnerElement) === -1) {
-               newPath = false;
-
-               if (!partnerElement) break;
                proceeded.push(partnerElement);
-               partnerPoint = partnerElement.getPartnerPoint(partnerPoint);
-               partnerElement = partnerPoint.getPartnerElement(partnerElement);
 
-               if (!partnerElement || proceeded.indexOf(partnerElement) !== -1) break;
-               path.push(partnerElement);
+               while (newPath || proceeded.indexOf(partnerElement) === -1) {
+                  newPath = false;
+
+                  if (!partnerElement) break;
+                  proceeded.push(partnerElement);
+                  partnerPoint = partnerElement.getPartnerPoint(partnerPoint);
+                  partnerElement = partnerPoint.getPartnerElement(partnerElement);
+
+                  if (!partnerElement || proceeded.indexOf(partnerElement) !== -1) break;
+                  path.push(partnerElement);
+               }
+
+               paths.push(path);
+
+            } else if (items[k].class === 'rectangle') {
+               proceeded.push(items[k]);
+               paths.push(items[k]);
             }
-
-            paths.push(path);
          }
       }
 
