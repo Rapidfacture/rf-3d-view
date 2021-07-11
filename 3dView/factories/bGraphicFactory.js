@@ -13,7 +13,14 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
       start: function (scene) {
          types = {
             chuck: {
-               diffuseColor: BABYLON.Color3.FromHexString('#bbbbbb')
+               material: (function () {
+                  var mat = new BABYLON.StandardMaterial('contourFinish', scene);
+                  mat.diffuseColor = BABYLON.Color3.FromHexString('#bbbbbb');
+                  mat.backFaceCulling = true;
+                  return mat;
+               }()),
+               lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1),
+               lineWidth: 10
             },
             chuckJaws: {
                diffuseColor: BABYLON.Color3.FromHexString('#bbbbbb')
