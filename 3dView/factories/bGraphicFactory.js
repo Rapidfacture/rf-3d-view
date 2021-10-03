@@ -7,6 +7,8 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
    var groups = {};
 
    var Services = {
+      selectMode: false,
+
       paintView: _paintView,
       sliceView: _sliceView,
       showAxis: _showAxis,
@@ -200,47 +202,31 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
       return {vector: new BABYLON.Vector3(x, y, z), angle: angle};
    }
 
-   function _setSelected (selected, item, materialsNumber) {
-      if (!item.camAttributes || selected === undefined) return;
-
-      var group = selected[item.camAttributes.group];
-      var idOnPath = item.camAttributes.idOnPath;
-      var position = item.camAttributes.position;
-
-      if (group && group[position] && group[position].indexOf(idOnPath) !== -1) {
-         item.materialIndex = materialsNumber - 1;
-
-      } else {
-         item.materialIndex = materialsNumber - 2;
-      }
-   }
-
    /* ----------- external functions --------- */
    function _paintView (engine, scene, data, click, ctrlClick) {
       if (!data || !data.items) return;
 
       data.items = JSON.parse(JSON.stringify(data.items));
+      data.selected = data.selected || {};
+      data.selectable = data.selectable || {};
 
       click = click || function () {};
       ctrlClick = ctrlClick || function () {};
 
+      Services.selectMode = false;
       scene.onPointerDown = function (event, result) {
-         if (result.pickedMesh && result.pickedMesh.material.subMaterials) {
-            var selectedSubMesh = result.pickedMesh.subMeshes[result.subMeshId];
-            var materialsNumber = result.pickedMesh.material.subMaterials.length;
+         if (!Services.selectMode || !result.pickedMesh) return;
 
-            if (selectedSubMesh.selectable) {
-               if (event.ctrlKey) {
-                  ctrlClick(selectedSubMesh.camAttributes);
+         var mesh = result.pickedMesh;
+         mesh.selected = !mesh.selected;
+         mesh.material = (mesh.selected ? types.selected.material : types[mesh.type].material);
 
-               } else {
-                  click(selectedSubMesh.camAttributes);
-               }
+         // console.log(mesh.sketchName);
+         if (event.ctrlKey) {
+            ctrlClick(mesh.sketchName);
 
-               result.pickedMesh.subMeshes.forEach(function (subMesh) {
-                  _setSelected(data.selected, subMesh, materialsNumber);
-               });
-            }
+         } else {
+            click(mesh.sketchName);
          }
       };
 
@@ -313,6 +299,9 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
          var itemTransformation = _transformationMatrixToAxisAngle(item.transformation);
          var itemOffset = new BABYLON.Vector3.FromArray(item.offset);
 
+         var itemSelected = data.selected[item.partType] || [];
+         var itemSelectable = data.selectable[item.partType] || [];
+
          var itemNode = new BABYLON.TransformNode('Item_' + $index, scene);
          itemNode.parent = groups['G' + item.group].node;
          itemNode.translate(itemOffset, 1);
@@ -326,6 +315,8 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
             var primitiveOffset = new BABYLON.Vector3.FromArray(primitive.offset);
             var materialType = types[item.type];
             var mesh;
+
+            var selected = itemSelected.indexOf(primitive.name) !== -1;
 
             if (primitive.shape === 'freeForm') {
                var normals = [];
@@ -344,9 +335,10 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                mesh = new BABYLON.Mesh('FreeForm_' + $index + '_' + i, scene);
                vertexData.applyToMesh(mesh, true);
 
-               mesh.material = types[item.type].material;
-               mesh.selectable = true;
-               mesh.camAttributes = primitive.attributes;
+               mesh.material = (selected ? types.selected.material : types[item.type].material);
+               mesh.isPickable = itemSelectable === 'freeForm' || itemSelectable.indexOf(primitive.name) !== -1;
+               mesh.sketchName = primitive.name;
+               mesh.type = item.type;
 
                mesh.parent = itemNode;
                mesh.renderingGroupId = 0;
