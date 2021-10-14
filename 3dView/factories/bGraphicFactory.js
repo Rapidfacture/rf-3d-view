@@ -2,16 +2,20 @@
 
 app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGeneralFactory) {
    var TOLERANCE = 1e-12;
-
+   var staticMeshNames = ['draw'];
    var types = {};
    var groups = {};
 
    var Services = {
+      data: {},
+      itemNodes: [],
       selectMode: false,
 
+      defaultOnPointerDown: _onPointerDown,
       paintView: _paintView,
       sliceView: _sliceView,
       showAxis: _showAxis,
+      getSelectedMeshes: _getSelectedMeshes,
       start: function (scene) {
          types = {
             chuck: {
@@ -116,7 +120,8 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                }
             }
          };
-      }
+      },
+      transformationMatrixToAxisAngle: _transformationMatrixToAxisAngle
    };
 
 
@@ -203,38 +208,44 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
    }
 
    /* ----------- external functions --------- */
-   function _paintView (engine, scene, data, click, ctrlClick) {
+   function _onPointerDown (event, result) {
+      if (!Services.selectMode || !result.pickedMesh) return;
+
+      var mesh = result.pickedMesh;
+      mesh.selected = !mesh.selected;
+      mesh.material = (mesh.selected ? types.selected.material : types[mesh.type].material);
+
+      if (event.ctrlKey) {
+         if (mesh.selected) {
+            Services.data.selected[mesh.partType] = Services.data.selected[mesh.partType] || [];
+            Services.data.selected[mesh.partType].push(mesh.sketchName);
+         }
+
+      } else {
+         if (mesh.selected) Services.data.selected[mesh.partType] = [mesh.sketchName];
+      }
+   }
+
+   function _paintView (engine, scene, data) {
       if (!data || !data.items) return;
 
       data.items = JSON.parse(JSON.stringify(data.items));
       data.selected = data.selected || {};
       data.selectable = data.selectable || {};
 
-      click = click || function () {};
-      ctrlClick = ctrlClick || function () {};
-
       Services.selectMode = false;
-      scene.onPointerDown = function (event, result) {
-         if (!Services.selectMode || !result.pickedMesh) return;
+      Services.data = data;
+      Services.itemNodes.length = 0;
 
-         var mesh = result.pickedMesh;
-         mesh.selected = !mesh.selected;
-         mesh.material = (mesh.selected ? types.selected.material : types[mesh.type].material);
-
-         // console.log(mesh.sketchName);
-         if (event.ctrlKey) {
-            ctrlClick(mesh.sketchName);
-
-         } else {
-            click(mesh.sketchName);
-         }
-      };
+      scene.onPointerDown = _onPointerDown;
 
       groups = {};
 
       // remove old meshes
       for (var k = scene.meshes.length - 1; k >= 0; k--) {
-         scene.meshes[k].dispose();
+         if (staticMeshNames.indexOf(scene.meshes[k].name) === -1 && scene.meshes[k].deleteOnRedraw !== false) {
+            scene.meshes[k].dispose();
+         }
       }
 
       scene.setRenderingAutoClearDepthStencil(0, false);
@@ -306,6 +317,9 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
          itemNode.parent = groups['G' + item.group].node;
          itemNode.translate(itemOffset, 1);
          itemNode.rotate(itemTransformation.vector, itemTransformation.angle);
+         itemNode.partType = item.partType;
+
+         Services.itemNodes.push(itemNode);
 
          item.primitives.forEach(function (primitive, i) {
             primitive.offset = primitive.offset || [0, 0, 0];
@@ -339,6 +353,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                mesh.isPickable = itemSelectable === 'freeForm' || itemSelectable.indexOf(primitive.name) !== -1;
                mesh.sketchName = primitive.name;
                mesh.type = item.type;
+               mesh.partType = item.partType;
 
                mesh.parent = itemNode;
                mesh.renderingGroupId = 0;
@@ -400,10 +415,10 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
             if (!materialType) continue;
 
             var meshInsideMaterial = new BABYLON.CustomMaterial('meshInsideMaterial', scene);
-            meshInsideMaterial.diffuseColor = materialType.diffuseColor;
+            meshInsideMaterial.diffuseColor = materialType.material.diffuseColor;
             meshInsideMaterial.backFaceCulling = false;
-            meshInsideMaterial.color = materialType.diffuseColor;
-            meshInsideMaterial.alpha = materialType.alpha || 1;
+            meshInsideMaterial.color = materialType.material.diffuseColor;
+            meshInsideMaterial.alpha = materialType.material.alpha || 1;
             meshInsideMaterial.Fragment_Before_FragColor('if(gl_FrontFacing) discard;');
 
             var meshInside = mesh.clone(mesh.id + 'Inner');
@@ -429,23 +444,23 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                engine.setStencilBuffer(false);
             });
 
-            var previousStencilMask = engine.getStencilMask();
-            var previousStencilFunction = engine.getStencilFunction();
+            var stencilMask = engine.getStencilMask();
+            var stencilFunction = engine.getStencilFunction();
 
             var stencilPlaneMaterial = mesh.material.clone('stencilPlaneMaterial');
             stencilPlaneMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
             stencilPlaneMaterial.emissiveColor = new BABYLON.Color3(0, 0, 0);
             stencilPlaneMaterial.ambientColor = new BABYLON.Color3(0, 0, 0);
 
-            var boundingBox = mesh.getBoundingInfo().boundingBox;
-            var dx = boundingBox.maximum.x - boundingBox.minimum.x;
-            var dz = boundingBox.maximum.z - boundingBox.minimum.z;
+            // var boundingBox = mesh.getBoundingInfo().boundingBox;
+            // var dx = boundingBox.maximumWorld.x - boundingBox.minimumWorld.x;
+            // var dy = boundingBox.maximumWorld.y - boundingBox.minimumWorld.y;
 
-            var stencilPlane = BABYLON.MeshBuilder.CreatePlane('stencilPlane', {width: dx, height: dz}, scene);
-            stencilPlane.parent = group.node;
-            // stencilPlane.rotate(new BABYLON.Vector3(1, 0, 0), -Math.PI / 2);
+            var stencilPlane = BABYLON.MeshBuilder.CreatePlane('stencilPlane', {width: 400, height: 600}, scene);
+            stencilPlane.parent = mesh.parent;
             stencilPlane.material = stencilPlaneMaterial;
-            stencilPlane.position.set(mesh.position.x, mesh.position.y, boundingBox.maximum.z - dz / 2 + mesh.position.z);
+            stencilPlane.position.set(200, 300, -10);
+
             stencilPlane.isPickable = false;
             stencilPlane.renderingGroupId = (materialType === 'contourRaw' ? 2 : 1);
             stencilPlane.onBeforeRenderObservable.add(function () {
@@ -456,15 +471,36 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
 
             stencilPlane.onAfterRenderObservable.add(function () {
                engine.setStencilBuffer(false);
-               engine.setStencilMask(previousStencilMask);
-               engine.setStencilFunction(previousStencilFunction);
+               engine.setStencilMask(stencilMask);
+               engine.setStencilFunction(stencilFunction);
             });
          }
       }
    }
 
+   function _getSelectedMeshes () {
+      var result = {};
+
+      for (var k in Services.data.selected) {
+         result[k] = [];
+         Services.data.items.forEach(function (item) {
+            if (item.partType !== k) return;
+
+            item.primitives.forEach(function (primitive) {
+               if (Services.data.selected[k].indexOf(primitive.name) !== -1) {
+                  result[k].push(primitive);
+               }
+            });
+         });
+      }
+
+      return result;
+   }
+
    // show axis
    function _showAxis (groupId, node, translation, rotation, name, options, scene) {
+      options = options || {};
+
       // rotation not jet in use
       var makeTextPlane = function (label, color) {
          var text = bGraphicGeneralFactory.getTextPlaneProperties(label);
@@ -499,6 +535,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
       var CoT = new BABYLON.TransformNode(groupId + '_' + name, scene);
       CoT.parent = node;
       CoT.translate(translation, 1);
+      CoT.deleteOnRedraw = options.deleteOnRedraw;
 
       if (rotation) CoT.rotate(rotation.vector, rotation.angle);
 
@@ -523,12 +560,14 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
          axisX.isPickable = isPickable;
          axisX.renderingGroupId = 3;
          axisX.parent = CoT;
+         axisX.deleteOnRedraw = options.deleteOnRedraw;
 
          var xChar = makeTextPlane('X', 'red');
          xChar.isPickable = false;
          xChar.position = new BABYLON.Vector3(0.9 * size, -0.05 * size, 0);
          xChar.renderingGroupId = 3;
          xChar.parent = CoT;
+         xChar.deleteOnRedraw = options.deleteOnRedraw;
 
          result.xAxis = axisX;
          result.xChar = xChar;
@@ -550,12 +589,14 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
          axisY.isPickable = isPickable;
          axisY.renderingGroupId = 3;
          axisY.parent = CoT;
+         axisY.deleteOnRedraw = options.deleteOnRedraw;
 
          var yChar = makeTextPlane('Y', 'green');
          yChar.isPickable = false;
          yChar.position = new BABYLON.Vector3(0, 0.9 * size, -0.05 * size);
          yChar.renderingGroupId = 3;
          yChar.parent = CoT;
+         yChar.deleteOnRedraw = options.deleteOnRedraw;
 
          result.yAxis = axisY;
          result.yChar = yChar;
@@ -577,12 +618,14 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
          axisZ.isPickable = isPickable;
          axisZ.renderingGroupId = 3;
          axisZ.parent = CoT;
+         axisZ.deleteOnRedraw = options.deleteOnRedraw;
 
          var zChar = makeTextPlane('Z', 'blue');
          zChar.isPickable = false;
          zChar.position = new BABYLON.Vector3(0, 0.05 * size, 0.9 * size);
          zChar.renderingGroupId = 3;
          zChar.parent = CoT;
+         zChar.deleteOnRedraw = options.deleteOnRedraw;
 
          result.zAxis = axisZ;
          result.zChar = zChar;
@@ -593,6 +636,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
          label.isPickable = false;
          label.renderingGroupId = 3;
          label.parent = CoT;
+         label.deleteOnRedraw = options.deleteOnRedraw;
 
          result.label = label;
       }

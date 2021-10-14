@@ -98,12 +98,20 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       return '' + diameter + dimValue + tolType + tolValue;
    }
 
-   function _getDragAndDropBehavior (dragStartFunction, dragFunction, dragEndFunction) {
+   function _getDragAndDropBehavior (dragStartFunction, dragFunction, dragEndFunction, grid) {
       dragEndFunction = dragEndFunction || function () {};
       dragFunction = dragFunction || function () {};
       dragStartFunction = dragStartFunction || function () {};
 
-      var behavior = new BABYLON.PointerDragBehavior({dragPlaneNormal: new BABYLON.Vector3(0, 0, 1)});
+      // var result = new BABYLON.Vector3();
+
+      var dragPlaneNormal = new BABYLON.Vector3(0, 0, 1);
+
+      if (grid) {
+         dragPlaneNormal.rotateByQuaternionToRef(grid.rotationQuaternion, dragPlaneNormal);
+      }
+
+      var behavior = new BABYLON.PointerDragBehavior({dragPlaneNormal: dragPlaneNormal});
 
       // Disable acceleration
       behavior.dragDeltaRatio = 1;
@@ -246,6 +254,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
 
          } else {
             dimensionNode = new BABYLON.TransformNode(namePrefix + name, scene);
+            if (grid) dimensionNode.parent = grid.parent;
          }
 
          dimensionLine.parent = dimensionNode;
@@ -260,7 +269,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
                _getDragAndDropBehavior(
                   options.dragStartFunction,
                   options.dragFunction,
-                  options.dragEndFunction
+                  options.dragEndFunction,
+                  grid
                )
             );
          }
@@ -336,6 +346,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       if (grid) {
          constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable', true));
          constraint.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable', false));
+         constraint.parent = grid.parent;
       }
 
       return constraint;
@@ -441,7 +452,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
             _getDragAndDropBehavior(
                options.dragStartFunction,
                options.dragFunction,
-               options.dragEndFunction
+               options.dragEndFunction,
+               grid
             )
          );
       }
@@ -449,6 +461,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       if (grid) {
          item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable', true));
          item.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable', false));
+         item.parent = grid.parent;
       }
 
       return item;
@@ -492,7 +505,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
             _getDragAndDropBehavior(
                options.dragStartFunction,
                options.dragFunction,
-               options.dragEndFunction
+               options.dragEndFunction,
+               grid
             )
          );
       }
@@ -506,6 +520,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       if (grid) {
          radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable', true));
          radius.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable', false));
+         radius.parent = grid.parent;
       }
 
       return radius;
@@ -549,7 +564,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
             _getDragAndDropBehavior(
                options.dragStartFunction,
                options.dragFunction,
-               options.dragEndFunction
+               options.dragEndFunction,
+               grid
             )
          );
       }
@@ -563,6 +579,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       if (grid) {
          line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable', true));
          line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable', false));
+         line.parent = grid.parent;
       }
 
       return line;
@@ -609,7 +626,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
             _getDragAndDropBehavior(
                options.dragStartFunction,
                options.dragFunction,
-               options.dragEndFunction
+               options.dragEndFunction,
+               grid
             )
          );
       }
@@ -623,6 +641,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
       if (grid) {
          line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, grid, 'isPickable', true));
          line.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, grid, 'isPickable', false));
+         line.parent = grid.parent;
       }
 
       return line;
@@ -635,7 +654,6 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
 
       if (options.registerActions) {
          var text = bGraphicGeneralFactory.getTextPlaneProperties(label);
-         console.log(text);
          var subMeshes = [];
 
          if (options.replacement) subMeshes = options.replacement.getChildMeshes();
@@ -698,6 +716,7 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
 
          } else {
             node = new BABYLON.TransformNode('Text_' + name, scene);
+            node.parent = grid.parent;
          }
 
          plane.parent = node;
@@ -709,7 +728,8 @@ app.factory('bGraphicSketchFactory', ['bGraphicGeneralFactory', function (bGraph
                _getDragAndDropBehavior(
                   options.dragStartFunction,
                   options.dragFunction,
-                  options.dragEndFunction
+                  options.dragEndFunction,
+                  grid
                )
             );
          }
