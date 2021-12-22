@@ -9,12 +9,14 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
    var Services = {
       data: {},
       itemNodes: [],
+      meshes: {},
       selectMode: false,
 
       defaultOnPointerDown: _onPointerDown,
       paintView: _paintView,
       sliceView: _sliceView,
       showAxis: _showAxis,
+      getMeshesByType: _getMeshesByType,
       getSelectedMeshes: _getSelectedMeshes,
       start: function (scene) {
          types = {
@@ -57,7 +59,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
             },
             contourRaw: {
                material: (function () {
-                  var mat = new BABYLON.StandardMaterial('contourFinish', scene);
+                  var mat = new BABYLON.StandardMaterial('contourRaw', scene);
                   mat.diffuseColor = BABYLON.Color3.Blue();
                   mat.alpha = 0.2;
                   mat.backFaceCulling = true;
@@ -112,11 +114,10 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                diffuseColor: BABYLON.Color3.Red()
             },
             tooling: {
+               hideEdge: true,
                lineColor: new BABYLON.Color4(1, 1, 1, 1),
-               lineWidth: 1,
                toolingFast: {
-                  lineColor: new BABYLON.Color4(1, 0, 0, 1),
-                  lineWidth: 1
+                  lineColor: new BABYLON.Color4(1, 0, 0, 1)
                }
             }
          };
@@ -208,6 +209,17 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
    }
 
    /* ----------- external functions --------- */
+   function _getMeshesByType (type) {
+      var meshes = Services.meshes;
+      var result = [];
+
+      for (var k in Services.meshes) {
+         if (meshes[k].material && meshes[k].material.name === type) result.push(meshes[k]);
+      }
+
+      return result;
+   }
+
    function _onPointerDown (event, result) {
       if (!Services.selectMode || !result.pickedMesh) return;
 
@@ -236,6 +248,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
       Services.selectMode = false;
       Services.data = data;
       Services.itemNodes.length = 0;
+      Services.meshes = {};
 
       scene.onPointerDown = _onPointerDown;
 
@@ -362,32 +375,50 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                mesh.translate(primitiveOffset, 1, BABYLON.Space.WORLD);
 
                groups['G' + item.group].meshes[mesh.name] = mesh;
+               Services.meshes[primitive.name] = mesh;
 
             } else if (primitive.shape === 'freeFormOutline') {
+               if (!primitive.positions.length) return;
+
                primitive.lines.forEach(function (line, $primitiveIndex) {
+                  if (!line.indices.length) return;
+
                   var points = [];
+                  var colors = [];
+
                   line.indices.forEach(function (index) {
+                     var color = materialType.lineColor;
+
+                     if (isNaN(index)) {
+                        color = materialType[index.type].lineColor;
+                        index = index.index;
+                     }
+
                      points.push(new BABYLON.Vector3(
                         primitive.positions[3 * index],
                         primitive.positions[3 * index + 1],
                         primitive.positions[3 * index + 2]
                      ));
-                  });
 
-                  var tmpType = (line.type ? materialType[line.type] : materialType);
+                     colors.push(color);
+                  });
 
                   mesh = BABYLON.MeshBuilder.CreateLines(
                      'FreeFormOutline_' + $index + '_' + i + '_' + $primitiveIndex,
                      {
                         points: points,
-                        colors: Array(points.length).fill(tmpType.lineColor)
+                        colors: colors,
+                        useVertexAlpha: false
                      },
                      scene
                   );
 
-                  mesh.enableEdgesRendering();
-                  mesh.edgesWidth = tmpType.lineWidth;
-                  mesh.edgesColor = tmpType.lineColor;
+                  if (!materialType.hideEdge) {
+                     var tmpType = (line.type ? materialType[line.type] : materialType);
+                     mesh.enableEdgesRendering();
+                     mesh.edgesWidth = tmpType.lineWidth;
+                     mesh.edgesColor = tmpType.lineColor;
+                  }
 
                   mesh.parent = itemNode;
                   mesh.renderingGroupId = 0;
@@ -396,6 +427,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                   mesh.translate(primitiveOffset, 1, BABYLON.Space.WORLD);
 
                   groups['G' + item.group].meshes[mesh.name] = mesh;
+                  Services.meshes[primitive.name] = mesh;
                });
             }
          });
@@ -405,22 +437,25 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
    }
 
    function _sliceView (engine, scene, groups, clipPlane) {
-      for (var k in groups) {
-         var group = groups[k];
+      var keys = ['contourRaw', 'contourFinish'];
 
-         for (var l in group.meshes) {
-            var mesh = group.meshes[l];
-            var materialType = types[mesh.material.id];
+      keys.forEach(function (key) {
+         var meshes = Services.getMeshesByType(key);
+         var materialType = types[key];
 
-            if (!materialType) continue;
+         if (!materialType) return;
 
-            var meshInsideMaterial = new BABYLON.CustomMaterial('meshInsideMaterial', scene);
-            meshInsideMaterial.diffuseColor = materialType.material.diffuseColor;
-            meshInsideMaterial.backFaceCulling = false;
-            meshInsideMaterial.color = materialType.material.diffuseColor;
-            meshInsideMaterial.alpha = materialType.material.alpha || 1;
-            meshInsideMaterial.Fragment_Before_FragColor('if(gl_FrontFacing) discard;');
+         var meshInsideMaterial = new BABYLON.CustomMaterial(key + '_inside', scene);
+         meshInsideMaterial.diffuseColor = materialType.material.diffuseColor;
+         meshInsideMaterial.backFaceCulling = false;
+         meshInsideMaterial.color = materialType.material.diffuseColor;
+         meshInsideMaterial.alpha = materialType.material.alpha || 1;
+         meshInsideMaterial.Fragment_Before_FragColor('if(gl_FrontFacing) discard;');
 
+         var stencilMask = engine.getStencilMask();
+         var stencilFunction = engine.getStencilFunction();
+
+         meshes.forEach(function (mesh) {
             var meshInside = mesh.clone(mesh.id + 'Inner');
             meshInside.material = meshInsideMaterial;
             meshInside.renderingGroupId = 1;
@@ -444,14 +479,10 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                engine.setStencilBuffer(false);
             });
 
-            var stencilMask = engine.getStencilMask();
-            var stencilFunction = engine.getStencilFunction();
-
             var stencilPlaneMaterial = mesh.material.clone('stencilPlaneMaterial');
             stencilPlaneMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
             stencilPlaneMaterial.emissiveColor = new BABYLON.Color3(0, 0, 0);
             stencilPlaneMaterial.ambientColor = new BABYLON.Color3(0, 0, 0);
-
             // var boundingBox = mesh.getBoundingInfo().boundingBox;
             // var dx = boundingBox.maximumWorld.x - boundingBox.minimumWorld.x;
             // var dy = boundingBox.maximumWorld.y - boundingBox.minimumWorld.y;
@@ -459,10 +490,12 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
             var stencilPlane = BABYLON.MeshBuilder.CreatePlane('stencilPlane', {width: 400, height: 600}, scene);
             stencilPlane.parent = mesh.parent;
             stencilPlane.material = stencilPlaneMaterial;
-            stencilPlane.position.set(200, 300, -10);
+            stencilPlane.rotate(BABYLON.Axis.Y, Math.PI, BABYLON.Space.LOCAL);
+            // stencilPlane.position.set(0, 0, 0);
 
+            // stencilPlane.rotationQuaternion = new BABYLON.Quaternion(0, -1, 0, 0);
             stencilPlane.isPickable = false;
-            stencilPlane.renderingGroupId = (materialType === 'contourRaw' ? 2 : 1);
+            stencilPlane.renderingGroupId = (key === 'contourRaw' ? 2 : 1);
             stencilPlane.onBeforeRenderObservable.add(function () {
                engine.setStencilBuffer(true);
                engine.setStencilMask(0x00);
@@ -474,8 +507,8 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                engine.setStencilMask(stencilMask);
                engine.setStencilFunction(stencilFunction);
             });
-         }
-      }
+         });
+      });
    }
 
    function _getSelectedMeshes () {
