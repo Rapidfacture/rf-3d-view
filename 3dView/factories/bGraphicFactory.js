@@ -4,18 +4,21 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
    var TOLERANCE = 1e-12;
    var staticMeshNames = ['draw'];
    var types = {};
-   var groups = {};
 
    var Services = {
       data: {},
       itemNodes: [],
+      groups: {},
       meshes: {},
+      planes: {},
       selectMode: false,
 
       defaultOnPointerDown: _onPointerDown,
       paintView: _paintView,
       sliceView: _sliceView,
       showAxis: _showAxis,
+      showPlane: _showPlane,
+      setNodeTransformation: _setNodeTransformation,
       getMeshesByType: _getMeshesByType,
       getSelectedMeshes: _getSelectedMeshes,
       start: function (scene) {
@@ -74,9 +77,27 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                diffuseColor: BABYLON.Color3.Green(),
                lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1)
             },
-            threading: {
-               diffuseColor: BABYLON.Color3.Red(),
-               lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1)
+            plane: {
+               material: (function () {
+                  var mat = new BABYLON.StandardMaterial('plane', scene);
+                  mat.diffuseColor = BABYLON.Color3.Yellow();
+
+                  return mat;
+               }()),
+               materialMouseOver: (function () {
+                  var mat = new BABYLON.StandardMaterial('planeMouseOver', scene);
+                  mat.diffuseColor = BABYLON.Color3.Red();
+
+                  return mat;
+               }())
+            },
+            planeSelected: {
+               material: (function () {
+                  var mat = new BABYLON.StandardMaterial('plane', scene);
+                  mat.diffuseColor = BABYLON.Color3(1, 0, 0);
+
+                  return mat;
+               }())
             },
             revolvingCenter: {
                diffuseColor: BABYLON.Color3.Gray()
@@ -92,6 +113,10 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                   return mat;
                }()),
                lineColor: BABYLON.Color4(0, 1, 0, 1)
+            },
+            threading: {
+               diffuseColor: BABYLON.Color3.Red(),
+               lineColor: new BABYLON.Color4(0.3, 0.3, 0.3, 1)
             },
             tailStock: {
                color: BABYLON.Color3.Gray(),
@@ -121,6 +146,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                }
             }
          };
+
       },
       transformationMatrixToAxisAngle: _transformationMatrixToAxisAngle
    };
@@ -227,14 +253,14 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
       mesh.selected = !mesh.selected;
       mesh.material = (mesh.selected ? types.selected.material : types[mesh.type].material);
 
+      if (!mesh.selected) return;
+
       if (event.ctrlKey) {
-         if (mesh.selected) {
-            Services.data.selected[mesh.partType] = Services.data.selected[mesh.partType] || [];
-            Services.data.selected[mesh.partType].push(mesh.sketchName);
-         }
+         Services.data.selected[mesh.partType] = Services.data.selected[mesh.partType] || [];
+         Services.data.selected[mesh.partType].push(mesh.sketchName);
 
       } else {
-         if (mesh.selected) Services.data.selected[mesh.partType] = [mesh.sketchName];
+         Services.data.selected[mesh.partType] = [mesh.sketchName];
       }
    }
 
@@ -249,10 +275,10 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
       Services.data = data;
       Services.itemNodes.length = 0;
       Services.meshes = {};
+      Services.planes = {};
+      Services.groups = {};
 
       scene.onPointerDown = _onPointerDown;
-
-      groups = {};
 
       // remove old meshes
       for (var k = scene.meshes.length - 1; k >= 0; k--) {
@@ -273,6 +299,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
       // append new group where everything is added
       var dataItems = data.items || [];
       var dataGroups = data.groups || [{id: 0}];
+      var dataPlanes = data.planes || [];
 
       dataGroups.forEach(function (group) {
          group.offset = group.offset || [0, 0, 0];
@@ -312,7 +339,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
             _showAxis(group.id, groupNode, originOffset, originTransformation, k, {size: 20, label: item.label}, scene);
          }
 
-         groups['G' + group.id] = {node: groupNode, meshes: {}};
+         Services.groups['G' + group.id] = {node: groupNode, meshes: {}};
       });
 
       dataItems.forEach(function (item, $index) {
@@ -327,7 +354,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
          var itemSelectable = data.selectable[item.partType] || [];
 
          var itemNode = new BABYLON.TransformNode('Item_' + $index, scene);
-         itemNode.parent = groups['G' + item.group].node;
+         itemNode.parent = Services.groups['G' + item.group].node;
          itemNode.translate(itemOffset, 1);
          itemNode.rotate(itemTransformation.vector, itemTransformation.angle);
          itemNode.partType = item.partType;
@@ -374,7 +401,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                mesh.rotate(primitiveTransformation.vector, primitiveTransformation.angle, BABYLON.Space.WORLD);
                mesh.translate(primitiveOffset, 1, BABYLON.Space.WORLD);
 
-               groups['G' + item.group].meshes[mesh.name] = mesh;
+               Services.groups['G' + item.group].meshes[mesh.name] = mesh;
                Services.meshes[primitive.name] = mesh;
 
             } else if (primitive.shape === 'freeFormOutline') {
@@ -426,14 +453,21 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
                   mesh.rotate(primitiveTransformation.vector, primitiveTransformation.angle, BABYLON.Space.WORLD);
                   mesh.translate(primitiveOffset, 1, BABYLON.Space.WORLD);
 
-                  groups['G' + item.group].meshes[mesh.name] = mesh;
+                  Services.groups['G' + item.group].meshes[mesh.name] = mesh;
                   Services.meshes[primitive.name] = mesh;
                });
             }
          });
       });
 
-      return groups;
+      dataPlanes.forEach(function (plane) {
+         var itemTransformation = _transformationMatrixToAxisAngle(plane.transformation);
+         var itemOffset = new BABYLON.Vector3.FromArray(plane.offset);
+
+         _showPlane(plane.groupId, null, itemOffset, itemTransformation, plane.name, {}, scene);
+      });
+
+      return Services.groups;
    }
 
    function _sliceView (engine, scene, groups, clipPlane) {
@@ -530,7 +564,6 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
       return result;
    }
 
-   // show axis
    function _showAxis (groupId, node, translation, rotation, name, options, scene) {
       options = options || {};
 
@@ -575,6 +608,7 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
       var isPickable = (options.isPickable === undefined ? true : options.isPickable);
       var size = options.size || 5;
       var axis = options.axis || 'xyz';
+      var planes = options.planes || [];
       var result = {};
 
       if (axis.includes('x')) {
@@ -664,6 +698,53 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
          result.zChar = zChar;
       }
 
+      if (planes.includes('xy')) {
+         var planeXY = BABYLON.MeshBuilder.CreatePlane(
+            'XY',
+            { width: size * 0.8, height: size * 0.8 },
+            scene
+         );
+         planeXY.position = new BABYLON.Vector3(size / 2, size / 2, 0);
+         planeXY.material = types.plane.material;
+         planeXY.actionManager = new BABYLON.ActionManager(scene);
+         planeXY.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, planeXY, 'material', planeXY.material));
+         planeXY.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, planeXY, 'material', types.plane.materialMouseOver));
+
+         result.planeXY = planeXY;
+      }
+
+      if (planes.includes('xz')) {
+         var planeXZ = BABYLON.MeshBuilder.CreatePlane(
+            'XZ',
+            { width: size * 0.8, height: size * 0.8 },
+            scene
+         );
+         planeXZ.position = new BABYLON.Vector3(size / 2, 0, size / 2);
+         planeXZ.rotation = new BABYLON.Vector3(-Math.PI / 2, 0, 0);
+         planeXZ.material = types.plane.material;
+         planeXZ.actionManager = new BABYLON.ActionManager(scene);
+         planeXZ.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, planeXZ, 'material', planeXZ.material));
+         planeXZ.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, planeXZ, 'material', types.plane.materialMouseOver));
+
+         result.planeXZ = planeXZ;
+      }
+
+      if (planes.includes('yz')) {
+         var planeYZ = BABYLON.MeshBuilder.CreatePlane(
+            'YZ',
+            { width: size * 0.8, height: size * 0.8 },
+            scene
+         );
+         planeYZ.position = new BABYLON.Vector3(0, size / 2, size / 2);
+         planeYZ.rotation = new BABYLON.Vector3(0, Math.PI / 2, 0);
+         planeYZ.material = types.plane.material;
+         planeYZ.actionManager = new BABYLON.ActionManager(scene);
+         planeYZ.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOutTrigger, planeYZ, 'material', planeYZ.material));
+         planeYZ.actionManager.registerAction(new BABYLON.SetValueAction(BABYLON.ActionManager.OnPointerOverTrigger, planeYZ, 'material', types.plane.materialMouseOver));
+
+         result.planeYZ = planeYZ;
+      }
+
       if (options.label) {
          var label = makeTextPlane(options.label, 'black');
          label.isPickable = false;
@@ -673,7 +754,39 @@ app.factory('bGraphicFactory', ['bGraphicGeneralFactory', function (bGraphicGene
 
          result.label = label;
       }
+
       return result;
+   }
+
+   function _showPlane (groupId, node, translation, rotation, name, options, scene) {
+      var CoT = new BABYLON.TransformNode(groupId + '_' + name, scene);
+      CoT.parent = node;
+      CoT.translate(translation, 1);
+      CoT.deleteOnRedraw = options.deleteOnRedraw;
+
+      if (rotation) CoT.rotate(rotation.vector, rotation.angle);
+
+      var size = 10;
+      var planeXY = BABYLON.MeshBuilder.CreatePlane(
+         'XY',
+         { width: size, height: size, sideOrientation: BABYLON.Mesh.DOUBLESIDE },
+         scene
+      );
+      planeXY.position = new BABYLON.Vector3(size / 2, size / 2, 0);
+      planeXY.material = types.plane.material;
+      planeXY.parent = CoT;
+
+      Services.planes[name] = planeXY;
+
+      return planeXY;
+   }
+
+   function _setNodeTransformation (node, offset, transformation) {
+      node.position = new BABYLON.Vector3.FromArray(offset);
+      node.rotation = new BABYLON.Vector3.Zero();
+
+      var rotation = _transformationMatrixToAxisAngle(transformation);
+      if (rotation) node.rotate(rotation.vector, rotation.angle);
    }
 
    return Services;
